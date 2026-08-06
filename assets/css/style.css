@@ -21,26 +21,10 @@ body{color:var(--text);background:#fff}
 h1,h2,h3,h4,h5,h6{font-weight:800}
 
 /* ---------- logo wordmark ---------- */
-.logo-mark{display:inline-flex;position:relative;direction:ltr;align-items:baseline;font-family:"Poppins","Cairo",sans-serif;font-weight:800;font-size:1.7rem;letter-spacing:.5px;line-height:1;padding-top:.5em}
-.logo-mark .m,.logo-mark .u{color:var(--brand)}
-.logo-mark .r{color:var(--gold-dark)}
-.logo-mark.on-dark .m,.logo-mark.on-dark .u{color:#fff}
-.logo-mark.on-dark .r{color:var(--gold-light)}
-.logo-mark::before{
-  content:"";
-  position:absolute;
-  width:.46em;height:.46em;
-  top:-.02em;
-  left:.98em;
-  background-repeat:no-repeat;
-  background-size:contain;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill-rule='evenodd' fill='%2314895f' d='M20,95 C8,70 12,45 34,30 C44,23 54,17 62,12 L66,18 C58,23 48,29 40,38 C26,52 22,70 28,88 Z M60,20 A15,15 0 1,0 90,20 A15,15 0 1,0 60,20 Z M66,20 A9,9 0 1,0 84,20 A9,9 0 1,0 66,20 Z'/%3E%3C/svg%3E")
-}
-.logo-mark.on-dark::before{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill-rule='evenodd' fill='%23ecd9b3' d='M20,95 C8,70 12,45 34,30 C44,23 54,17 62,12 L66,18 C58,23 48,29 40,38 C26,52 22,70 28,88 Z M60,20 A15,15 0 1,0 90,20 A15,15 0 1,0 60,20 Z M66,20 A9,9 0 1,0 84,20 A9,9 0 1,0 66,20 Z'/%3E%3C/svg%3E")
-}
+.logo-img{height:2.15rem;width:auto;display:block}
+.logo-img.on-dark{filter:brightness(0) invert(1)}
 .logo-sub{display:block;font-size:.62rem;letter-spacing:1px;color:var(--muted);font-weight:600;margin-top:-.15rem}
-.logo-mark.on-dark ~ .logo-sub,.on-dark .logo-sub{color:rgba(255,255,255,.75)}
+.on-dark .logo-sub{color:rgba(255,255,255,.75)}
 
 /* ---------- base brand utilities ---------- */
 .bg-brand{background:var(--brand)!important}
