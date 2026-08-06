@@ -11,6 +11,15 @@ export const GOVERNORATES = [
   "صلاح الدين", "دهوك", "السليمانية"
 ];
 
+const GOVERNORATE_COORDS = {
+  "بغداد": [33.3152, 44.3661], "البصرة": [30.5085, 47.7804], "نينوى": [36.3350, 43.1189],
+  "أربيل": [36.1901, 44.0091], "النجف": [31.9962, 44.3268], "كربلاء": [32.6160, 44.0249],
+  "كركوك": [35.4681, 44.3922], "الأنبار": [33.4200, 43.3000], "ذي قار": [31.0559, 46.2570],
+  "بابل": [32.4637, 44.4194], "ديالى": [33.7500, 44.6367], "واسط": [32.5122, 45.8235],
+  "ميسان": [31.8356, 47.1450], "المثنى": [31.3234, 45.2830], "القادسية": [31.9959, 44.9248],
+  "صلاح الدين": [34.6100, 43.6800], "دهوك": [36.8642, 42.9903], "السليمانية": [35.5650, 45.4331]
+};
+
 const IRAQ_CENTER = [33.3, 44.4];
 
 const tbody = document.getElementById("companiesBody");
@@ -41,8 +50,10 @@ function ensureMap() {
   if (map) return;
   map = L.map("locationMap", { scrollWheelZoom: false }).setView(IRAQ_CENTER, 6);
   map.on("click", () => map.scrollWheelZoom.enable());
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors"
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    subdomains: "abcd",
+    maxZoom: 19
   }).addTo(map);
 
   map.on("click", (e) => {
@@ -63,12 +74,19 @@ function placeMarker(lat, lng) {
   setCoords(lat, lng);
 }
 
+governorateSelect.addEventListener("change", () => {
+  const coords = GOVERNORATE_COORDS[governorateSelect.value];
+  if (coords && map) map.setView(coords, 10);
+});
+
 modalEl.addEventListener("shown.bs.modal", () => {
   ensureMap();
   map.invalidateSize();
   if (selectedLat && selectedLng) {
     map.setView([selectedLat, selectedLng], 14);
     placeMarker(selectedLat, selectedLng);
+  } else if (GOVERNORATE_COORDS[governorateSelect.value]) {
+    map.setView(GOVERNORATE_COORDS[governorateSelect.value], 10);
   }
 });
 

@@ -8,8 +8,10 @@ const countLabel = document.getElementById("mapCountLabel");
 requireAuth(() => {
   const map = L.map("allMap", { scrollWheelZoom: false }).setView(IRAQ_CENTER, 6);
   map.on("click", () => map.scrollWheelZoom.enable());
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap contributors"
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    subdomains: "abcd",
+    maxZoom: 19
   }).addTo(map);
 
   const markers = L.layerGroup().addTo(map);
