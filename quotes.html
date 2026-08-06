@@ -18,6 +18,7 @@
       <a href="leads.html"><i class="bi bi-person-lines-fill"></i> العملاء المحتملون</a>
       <a href="tasks.html"><i class="bi bi-check2-square"></i> المهام</a>
       <a class="active" href="quotes.html"><i class="bi bi-file-earmark-text"></i> عروض الأسعار</a>
+      <a href="users.html"><i class="bi bi-people"></i> المستخدمون</a>
       <a href="#"><i class="bi bi-megaphone"></i> التسويق</a>
       <a href="#"><i class="bi bi-gear"></i> الإعدادات</a>
     </nav>
@@ -27,10 +28,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
         <h2>عروض الأسعار</h2>
-        <p class="text-muted mb-0">عروض الأسعار المرسلة للعملاء ومتابعة حالتها</p>
+        <p class="text-muted mb-0">عرض سعر مفصّل لكل عميل — بنود، مسؤوليات كل طرف، وحالة المتابعة</p>
       </div>
       <div class="d-flex gap-2">
-        <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> إضافة عرض</button>
+        <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> إنشاء عرض</button>
         <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
       </div>
     </div>
@@ -50,42 +51,97 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th>رقم العرض</th>
             <th>العميل</th>
             <th>الجهة</th>
-            <th>المبلغ</th>
+            <th>الإجمالي</th>
             <th>صالح حتى</th>
             <th>الحالة</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="quotesBody">
-          <tr><td colspan="6" class="empty-state">جاري التحميل...</td></tr>
+          <tr><td colspan="7" class="empty-state">جاري التحميل...</td></tr>
         </tbody>
       </table>
     </div>
   </main>
 
   <div class="modal fade" id="quoteModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
         <form id="quoteForm">
           <div class="modal-header">
-            <h5 class="modal-title" id="quoteModalTitle">إضافة عرض سعر</h5>
+            <h5 class="modal-title" id="quoteModalTitle">إنشاء عرض سعر</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
             <input type="hidden" id="quoteId">
-            <div class="mb-3"><label class="form-label">اسم العميل *</label><input required id="clientName" class="form-control"></div>
-            <div class="mb-3"><label class="form-label">الجهة / الشركة</label><input id="companyName" class="form-control"></div>
             <div class="row">
-              <div class="col-md-6 mb-3"><label class="form-label">المبلغ (د.ع)</label><input type="number" id="amount" class="form-control"></div>
-              <div class="col-md-6 mb-3"><label class="form-label">صالح حتى</label><input type="date" id="validUntil" class="form-control"></div>
+              <div class="col-md-6 mb-3"><label class="form-label">اسم العميل *</label><input required id="clientName" class="form-control"></div>
+              <div class="col-md-6 mb-3"><label class="form-label">الجهة / الشركة</label><input id="companyName" class="form-control"></div>
             </div>
-            <div class="mb-3"><label class="form-label">ملاحظات</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
+            <div class="row">
+              <div class="col-md-4 mb-3"><label class="form-label">الهاتف</label><input id="phone" class="form-control"></div>
+              <div class="col-md-4 mb-3"><label class="form-label">القطاع</label>
+                <select id="sector" class="form-select">
+                  <option value="">— اختر —</option>
+                  <option>سكني</option><option>مول</option><option>مطعم/كافيه</option>
+                  <option>جامعة</option><option>مستشفى</option><option>فندق</option>
+                  <option>شركة</option><option>أخرى</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3"><label class="form-label">العرض صالح حتى</label><input type="date" id="validUntil" class="form-control"></div>
+            </div>
+
+            <hr>
+            <h6 class="fw-bold mb-2">بنود العرض</h6>
+            <table class="table table-sm align-middle">
+              <thead>
+                <tr>
+                  <th>الوصف</th>
+                  <th style="width:80px">الكمية</th>
+                  <th style="width:130px">سعر الوحدة</th>
+                  <th style="width:130px">المجموع</th>
+                  <th style="width:36px"></th>
+                </tr>
+              </thead>
+              <tbody id="itemsBody"></tbody>
+            </table>
+            <button type="button" id="addItemBtn" class="btn btn-sm btn-outline-secondary mb-3"><i class="bi bi-plus-lg"></i> إضافة بند</button>
+
+            <div class="row justify-content-end">
+              <div class="col-md-6">
+                <div class="d-flex justify-content-between py-1"><span>المجموع الفرعي</span><strong id="subtotalDisplay">0</strong></div>
+                <div class="d-flex justify-content-between align-items-center py-1">
+                  <span>نسبة الخصم %</span>
+                  <input type="number" id="discountPercent" class="form-control form-control-sm" style="width:90px" value="0" min="0" max="100">
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between fs-5"><strong>الإجمالي (د.ع)</strong><strong id="totalDisplay" style="color:var(--gold-dark)">0</strong></div>
+              </div>
+            </div>
+
+            <hr>
+            <div class="mb-3">
+              <label class="form-label fw-bold">يشمل هذا العرض</label>
+              <textarea id="scopeIncludes" class="form-control" rows="2" placeholder="مثال: توريد جهاز الشحن، التركيب الكامل، الضمان لمدة سنتين، صيانة السنة الأولى"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">مسؤوليات مُر</label>
+                <textarea id="murResponsibilities" class="form-control" rows="3" placeholder="التوريد، التركيب الاحترافي، الفحص والتشغيل، الضمان، الدعم الفني"></textarea>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">مسؤوليات العميل</label>
+                <textarea id="clientResponsibilities" class="form-control" rows="3" placeholder="تجهيز نقطة كهرباء مناسبة، توفير صلاحية دخول الموقع، تسديد الدفعات بالمواعيد"></textarea>
+              </div>
+            </div>
+            <div class="mb-2"><label class="form-label">ملاحظات إضافية</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
-            <button type="submit" class="btn btn-brand">حفظ</button>
+            <button type="submit" class="btn btn-brand">حفظ العرض</button>
           </div>
         </form>
       </div>

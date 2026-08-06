@@ -1,12 +1,17 @@
 import { db } from "../../services/firebase.js";
 import { requireAuth } from "../../services/auth-guard.js";
-import { collection, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import { collection, getCountFromServer, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const counters = {
   companies: document.getElementById("companiesCount"),
   leads: document.getElementById("leadsCount"),
   tasks: document.getElementById("tasksCount"),
   quotes: document.getElementById("quotesCount")
+};
+
+const TYPE_LABELS = {
+  installation: "تركيب", maintenance: "صيانة", site_survey: "دراسة موقع",
+  follow_up: "متابعة عميل", admin: "إداري", other: "أخرى"
 };
 
 async function loadCounters() {
@@ -20,9 +25,39 @@ async function loadCounters() {
   }
 }
 
+function loadMyTasks(uid) {
+  const box = document.getElementById("myTasksBox");
+  const list = document.getElementById("myTasksList");
+
+  onSnapshot(query(collection(db, "tasks"), where("assignedToUid", "==", uid)), (snapshot) => {
+    const tasks = snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((t) => (t.status || "pending") !== "done")
+      .sort((a, b) => (a.status === "blocked" ? -1 : 1) - (b.status === "blocked" ? -1 : 1));
+
+    if (!tasks.length) {
+      box.classList.add("d-none");
+      return;
+    }
+    box.classList.remove("d-none");
+
+    list.innerHTML = tasks.map((t) => `
+      <div class="d-flex justify-content-between align-items-center py-2 ${t !== tasks[tasks.length - 1] ? "border-bottom" : ""}">
+        <div>
+          <strong>${t.title}</strong>
+          <span class="text-muted small"> — ${TYPE_LABELS[t.type] || "مهمة"}</span>
+          ${t.status === "blocked" && t.blockerNotes ? `<div class="small" style="color:#c0392b"><i class="bi bi-exclamation-triangle"></i> معوق: ${t.blockerNotes}</div>` : ""}
+        </div>
+        <span class="status-badge status-${t.status === "blocked" ? "rejected" : "pending"}">${t.status === "blocked" ? "متعثرة" : "قيد التنفيذ"}</span>
+      </div>
+    `).join("") + `<a href="tasks.html" class="btn btn-sm btn-outline-secondary mt-3">شوف كل مهامي</a>`;
+  });
+}
+
 requireAuth((user, role) => {
   document.getElementById("userInfo").innerHTML =
     `<strong>${user.email}</strong><br><span class="text-muted">الصلاحية: ${role}</span>`;
 
   loadCounters();
+  loadMyTasks(user.uid);
 });

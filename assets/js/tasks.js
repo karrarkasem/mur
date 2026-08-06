@@ -5,17 +5,27 @@ import {
   doc, addDoc, updateDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-const PRIORITY_LABELS = { low: "منخفضة", medium: "متوسطة", high: "عالية" };
+const TYPE_LABELS = {
+  installation: "تركيب", maintenance: "صيانة", site_survey: "دراسة موقع",
+  follow_up: "متابعة عميل", admin: "إداري", other: "أخرى"
+};
+const STATUS_LABELS = { pending: "قيد التنفيذ", blocked: "متعثرة", done: "مكتملة" };
 
 const tbody = document.getElementById("tasksBody");
 const statusFilter = document.getElementById("statusFilter");
+const myTasksOnly = document.getElementById("myTasksOnly");
 const countLabel = document.getElementById("countLabel");
 const form = document.getElementById("taskForm");
 const modalEl = document.getElementById("taskModal");
 const modal = new bootstrap.Modal(modalEl);
+const statusSelect = document.getElementById("status");
+const blockerWrap = document.getElementById("blockerWrap");
+const assignedToSelect = document.getElementById("assignedTo");
 
 let allTasks = [];
+let allUsers = [];
 let userCanManage = false;
+let currentUid = null;
 
 function formatDate(value) {
   if (!value) return "—";
@@ -23,29 +33,34 @@ function formatDate(value) {
 }
 
 function render() {
-  const filter = statusFilter.value;
-  const rows = filter === "all" ? allTasks : allTasks.filter((t) => (t.status || "pending") === filter);
+  let rows = allTasks;
+  if (statusFilter.value !== "all") rows = rows.filter((t) => (t.status || "pending") === statusFilter.value);
+  if (myTasksOnly.checked) rows = rows.filter((t) => t.assignedToUid === currentUid);
 
   countLabel.textContent = `${rows.length} من ${allTasks.length} مهمة`;
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><i class="bi bi-check2-square"></i>ماكو مهام بهذه الحالة</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="bi bi-check2-square"></i>ماكو مهام بهذا الفلتر</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map((t) => `
-    <tr>
-      <td><strong>${t.title}</strong>${t.notes ? `<br><span class="text-muted small">${t.notes}</span>` : ""}</td>
-      <td>${t.assignee || "—"}</td>
+    <tr${t.status === "blocked" ? ' style="background:rgba(192,57,43,.04)"' : ""}>
+      <td><strong>${t.title}</strong>
+        ${t.status === "blocked" && t.blockerNotes ? `<br><span class="small" style="color:#c0392b"><i class="bi bi-exclamation-triangle"></i> ${t.blockerNotes}</span>` : ""}
+        ${t.notes ? `<br><span class="text-muted small">${t.notes}</span>` : ""}
+      </td>
+      <td>${TYPE_LABELS[t.type] || "—"}</td>
+      <td>${t.assignedToName || "—"}</td>
       <td>${formatDate(t.dueDate)}</td>
-      <td>${PRIORITY_LABELS[t.priority] || "—"}</td>
+      <td>${{ low: "منخفضة", medium: "متوسطة", high: "عالية" }[t.priority] || "—"}</td>
       <td>
-        ${userCanManage
+        ${userCanManage || t.assignedToUid === currentUid
           ? `<select class="status-select" data-id="${t.id}">
-              <option value="pending" ${(t.status || "pending") === "pending" ? "selected" : ""}>قيد التنفيذ</option>
-              <option value="done" ${t.status === "done" ? "selected" : ""}>مكتملة</option>
+              ${Object.entries(STATUS_LABELS).map(([val, label]) =>
+                `<option value="${val}" ${(t.status || "pending") === val ? "selected" : ""}>${label}</option>`).join("")}
             </select>`
-          : `<span class="status-badge status-${t.status || "pending"}">${t.status === "done" ? "مكتملة" : "قيد التنفيذ"}</span>`
+          : `<span class="status-badge status-${t.status === "blocked" ? "rejected" : t.status === "done" ? "done" : "pending"}">${STATUS_LABELS[t.status] || "قيد التنفيذ"}</span>`
         }
       </td>
       <td class="text-nowrap">
@@ -73,7 +88,14 @@ function render() {
   tbody.querySelectorAll("select[data-id]").forEach((select) => {
     select.addEventListener("change", async (e) => {
       try {
-        await updateDoc(doc(db, "tasks", e.target.dataset.id), { status: e.target.value });
+        const newStatus = e.target.value;
+        const patch = { status: newStatus };
+        if (newStatus !== "blocked") patch.blockerNotes = "";
+        await updateDoc(doc(db, "tasks", e.target.dataset.id), patch);
+        if (newStatus === "blocked") {
+          const note = prompt("شنو المعوق اللي أخر هذه المهمة؟");
+          if (note) await updateDoc(doc(db, "tasks", e.target.dataset.id), { blockerNotes: note });
+        }
       } catch (err) {
         alert("تعذر تحديث الحالة: " + err.message);
       }
@@ -81,29 +103,49 @@ function render() {
   });
 }
 
+function populateAssigneeOptions() {
+  assignedToSelect.innerHTML = `<option value="">— غير محددة —</option>` +
+    allUsers.map((u) => `<option value="${u.id}" data-name="${u.name || u.email}">${u.name || u.email}</option>`).join("");
+}
+
 function openModal(task) {
   form.reset();
+  blockerWrap.style.display = "none";
   document.getElementById("taskId").value = task?.id || "";
   document.getElementById("taskModalTitle").textContent = task ? "تعديل المهمة" : "إضافة مهمة";
   document.getElementById("title").value = task?.title || "";
-  document.getElementById("assignee").value = task?.assignee || "";
+  document.getElementById("type").value = task?.type || "installation";
+  assignedToSelect.value = task?.assignedToUid || "";
   document.getElementById("dueDate").value = task?.dueDate || "";
   document.getElementById("priority").value = task?.priority || "medium";
+  statusSelect.value = task?.status || "pending";
+  document.getElementById("blockerNotes").value = task?.blockerNotes || "";
   document.getElementById("notes").value = task?.notes || "";
+  blockerWrap.style.display = statusSelect.value === "blocked" ? "block" : "none";
   modal.show();
 }
 
+statusSelect.addEventListener("change", () => {
+  blockerWrap.style.display = statusSelect.value === "blocked" ? "block" : "none";
+});
+
 document.getElementById("addBtn").addEventListener("click", () => openModal(null));
 statusFilter.addEventListener("change", render);
+myTasksOnly.addEventListener("change", render);
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("taskId").value;
+  const selectedOption = assignedToSelect.options[assignedToSelect.selectedIndex];
   const data = {
     title: document.getElementById("title").value.trim(),
-    assignee: document.getElementById("assignee").value.trim(),
+    type: document.getElementById("type").value,
+    assignedToUid: assignedToSelect.value || null,
+    assignedToName: assignedToSelect.value ? selectedOption.dataset.name : null,
     dueDate: document.getElementById("dueDate").value,
     priority: document.getElementById("priority").value,
+    status: statusSelect.value,
+    blockerNotes: statusSelect.value === "blocked" ? document.getElementById("blockerNotes").value.trim() : "",
     notes: document.getElementById("notes").value.trim()
   };
 
@@ -111,7 +153,7 @@ form.addEventListener("submit", async (e) => {
     if (id) {
       await updateDoc(doc(db, "tasks", id), data);
     } else {
-      await addDoc(collection(db, "tasks"), { ...data, status: "pending", createdAt: serverTimestamp() });
+      await addDoc(collection(db, "tasks"), { ...data, createdAt: serverTimestamp() });
     }
     modal.hide();
   } catch (err) {
@@ -120,13 +162,20 @@ form.addEventListener("submit", async (e) => {
 });
 
 requireAuth((user, role) => {
+  currentUid = user.uid;
   userCanManage = canManage(role);
   if (!userCanManage) document.getElementById("addBtn").classList.add("d-none");
+
+  onSnapshot(query(collection(db, "users"), orderBy("name")), (snap) => {
+    allUsers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    populateAssigneeOptions();
+  });
+
   const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
   onSnapshot(q, (snapshot) => {
     allTasks = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });
