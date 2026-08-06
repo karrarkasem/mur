@@ -6,7 +6,8 @@ const IRAQ_CENTER = [33.3, 44.4];
 const countLabel = document.getElementById("mapCountLabel");
 
 requireAuth(() => {
-  const map = L.map("allMap").setView(IRAQ_CENTER, 6);
+  const map = L.map("allMap", { scrollWheelZoom: false }).setView(IRAQ_CENTER, 6);
+  map.on("click", () => map.scrollWheelZoom.enable());
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);

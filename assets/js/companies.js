@@ -39,7 +39,8 @@ function setCoords(lat, lng) {
 
 function ensureMap() {
   if (map) return;
-  map = L.map("locationMap").setView(IRAQ_CENTER, 6);
+  map = L.map("locationMap", { scrollWheelZoom: false }).setView(IRAQ_CENTER, 6);
+  map.on("click", () => map.scrollWheelZoom.enable());
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors"
   }).addTo(map);
