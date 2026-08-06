@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>تقويم المحتوى | مُر</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+</head>
+<body class="dashboard-body">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="مُر" class="logo-img on-dark" style="height:2.1rem"></div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-grid"></i> لوحة التحكم</a>
+      <a href="companies.html"><i class="bi bi-building"></i> الشركات</a>
+      <a href="leads.html"><i class="bi bi-person-lines-fill"></i> العملاء المحتملون</a>
+      <a href="tasks.html"><i class="bi bi-check2-square"></i> المهام</a>
+      <a href="quotes.html"><i class="bi bi-file-earmark-text"></i> عروض الأسعار</a>
+      <a href="users.html"><i class="bi bi-people"></i> المستخدمون</a>
+      <a class="active" href="marketing.html"><i class="bi bi-megaphone"></i> التسويق</a>
+      <a href="#"><i class="bi bi-gear"></i> الإعدادات</a>
+    </nav>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div>
+        <a href="marketing.html" class="small text-muted text-decoration-none"><i class="bi bi-arrow-right"></i> التسويق</a>
+        <h2>تقويم المحتوى</h2>
+      </div>
+      <div class="d-flex gap-2">
+        <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> منشور جديد</button>
+        <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
+      </div>
+    </div>
+
+    <div class="data-toolbar">
+      <select id="statusFilter" class="form-select" style="max-width:200px">
+        <option value="all">كل المنشورات</option>
+        <option value="draft">مسودة</option>
+        <option value="scheduled">مجدول</option>
+        <option value="published">منشور</option>
+      </select>
+      <span class="text-muted small" id="countLabel"></span>
+    </div>
+
+    <div class="data-table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المنصة</th>
+            <th>العنوان / المحتوى</th>
+            <th>الحالة</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="postsBody">
+          <tr><td colspan="5" class="empty-state">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="modal fade" id="postModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="postForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="postModalTitle">منشور جديد</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="postId">
+            <div class="row">
+              <div class="col-md-6 mb-3"><label class="form-label">تاريخ النشر</label><input type="date" id="date" class="form-control"></div>
+              <div class="col-md-6 mb-3"><label class="form-label">المنصة</label>
+                <select id="platform" class="form-select">
+                  <option value="facebook">فيسبوك</option>
+                  <option value="instagram">انستغرام</option>
+                  <option value="tiktok">تيك توك</option>
+                  <option value="whatsapp_status">حالة واتساب</option>
+                  <option value="telegram">تيليجرام</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3"><label class="form-label">العنوان</label><input id="title" class="form-control"></div>
+            <div class="mb-3"><label class="form-label">نص المحتوى / الكابشن</label><textarea id="content" class="form-control" rows="4"></textarea></div>
+            <div class="mb-3"><label class="form-label">الحالة</label>
+              <select id="status" class="form-select">
+                <option value="draft">مسودة</option>
+                <option value="scheduled">مجدول</option>
+                <option value="published">منشور</option>
+              </select>
+            </div>
+            <div class="mb-2"><label class="form-label">ملاحظات</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="submit" class="btn btn-brand">حفظ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/content-calendar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
