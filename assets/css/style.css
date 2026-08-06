@@ -199,9 +199,29 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .sidebar a{color:#dfe9e6;text-decoration:none;padding:.8rem 1rem;border-radius:.6rem;font-weight:600}
 .sidebar a.active,.sidebar a:hover{background:rgba(201,166,107,.15);color:var(--gold-light)}
 .dashboard-main{margin-right:240px;padding:2rem}
-.kpi{background:#fff;border-radius:var(--radius);padding:1.2rem;box-shadow:0 8px 25px rgba(10,46,38,.06)}
+.kpi{background:#fff;border-radius:var(--radius);padding:1.2rem;box-shadow:0 8px 25px rgba(10,46,38,.06);display:block;text-decoration:none;transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(10,46,38,.1)}
 .kpi span{color:var(--muted)}
 .kpi strong{display:block;font-size:2rem;color:var(--brand);font-family:"Poppins",sans-serif}
+
+/* ---------- admin data tables ---------- */
+.data-toolbar{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.data-table-card{background:#fff;border-radius:var(--radius);box-shadow:0 8px 25px rgba(10,46,38,.06);overflow:auto}
+.data-table{width:100%;border-collapse:collapse;min-width:640px}
+.data-table th{background:var(--brand-light);color:var(--brand-dark);font-weight:800;font-size:.82rem;padding:.85rem 1rem;text-align:right;white-space:nowrap}
+.data-table td{padding:.8rem 1rem;border-top:1px solid rgba(10,46,38,.08);font-size:.88rem;vertical-align:middle}
+.data-table tbody tr:hover{background:rgba(16,137,95,.04)}
+.data-table select.status-select{border:1px solid rgba(10,46,38,.15);border-radius:.5rem;padding:.3rem .6rem;font-size:.8rem;font-weight:700;background:#fff}
+.status-badge{display:inline-block;padding:.3rem .8rem;border-radius:50px;font-size:.74rem;font-weight:700;white-space:nowrap}
+.status-new,.status-pending,.status-draft{background:#fff3cd;color:#8a6708}
+.status-contacted,.status-sent{background:#cfe2ff;color:#084298}
+.status-closed,.status-done,.status-accepted{background:#d1e7dd;color:#0a5c36}
+.status-rejected{background:#f8d7da;color:#842029}
+.empty-state{padding:3rem 1rem;text-align:center;color:var(--muted)}
+.empty-state i{font-size:2.5rem;color:rgba(10,46,38,.15);display:block;margin-bottom:.75rem}
+.btn-icon{border:none;background:transparent;color:var(--muted);padding:.3rem .5rem;border-radius:.4rem;transition:color .2s var(--ease),background .2s var(--ease)}
+.btn-icon:hover{background:rgba(10,46,38,.06);color:var(--brand)}
+.btn-icon.danger:hover{color:#c0392b;background:rgba(192,57,43,.08)}
 
 @media(max-width:900px){
   .sidebar{position:static;width:100%;height:auto}

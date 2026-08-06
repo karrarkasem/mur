@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الشركات | مُر</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+</head>
+<body class="dashboard-body">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="مُر" class="logo-img on-dark" style="height:2.1rem"></div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-grid"></i> لوحة التحكم</a>
+      <a class="active" href="companies.html"><i class="bi bi-building"></i> الشركات</a>
+      <a href="leads.html"><i class="bi bi-person-lines-fill"></i> العملاء المحتملون</a>
+      <a href="tasks.html"><i class="bi bi-check2-square"></i> المهام</a>
+      <a href="quotes.html"><i class="bi bi-file-earmark-text"></i> عروض الأسعار</a>
+      <a href="#"><i class="bi bi-megaphone"></i> التسويق</a>
+      <a href="#"><i class="bi bi-gear"></i> الإعدادات</a>
+    </nav>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div>
+        <h2>الشركات</h2>
+        <p class="text-muted mb-0">الشركات والعملاء اللي تتعامل وياهم مُر</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> إضافة شركة</button>
+        <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
+      </div>
+    </div>
+
+    <div class="data-toolbar">
+      <input id="searchInput" class="form-control" style="max-width:280px" placeholder="بحث بالاسم...">
+      <span class="text-muted small" id="countLabel"></span>
+    </div>
+
+    <div class="data-table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>اسم الشركة</th>
+            <th>النشاط</th>
+            <th>الشخص المسؤول</th>
+            <th>الهاتف</th>
+            <th>الإيميل</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="companiesBody">
+          <tr><td colspan="6" class="empty-state">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Add/Edit Modal -->
+  <div class="modal fade" id="companyModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="companyForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="companyModalTitle">إضافة شركة</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="companyId">
+            <div class="mb-3"><label class="form-label">اسم الشركة *</label><input required id="name" class="form-control"></div>
+            <div class="mb-3"><label class="form-label">النشاط</label><input id="sector" class="form-control" placeholder="مول، مطعم، مجمع سكني..."></div>
+            <div class="mb-3"><label class="form-label">الشخص المسؤول</label><input id="contactPerson" class="form-control"></div>
+            <div class="row">
+              <div class="col-md-6 mb-3"><label class="form-label">الهاتف</label><input id="phone" class="form-control"></div>
+              <div class="col-md-6 mb-3"><label class="form-label">الإيميل</label><input type="email" id="email" class="form-control"></div>
+            </div>
+            <div class="mb-3"><label class="form-label">العنوان</label><input id="address" class="form-control"></div>
+            <div class="mb-3"><label class="form-label">ملاحظات</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="submit" class="btn btn-brand">حفظ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/companies.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>عروض الأسعار | مُر</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+</head>
+<body class="dashboard-body">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="مُر" class="logo-img on-dark" style="height:2.1rem"></div>
+    <nav>
+      <a href="dashboard.html"><i class="bi bi-grid"></i> لوحة التحكم</a>
+      <a href="companies.html"><i class="bi bi-building"></i> الشركات</a>
+      <a href="leads.html"><i class="bi bi-person-lines-fill"></i> العملاء المحتملون</a>
+      <a href="tasks.html"><i class="bi bi-check2-square"></i> المهام</a>
+      <a class="active" href="quotes.html"><i class="bi bi-file-earmark-text"></i> عروض الأسعار</a>
+      <a href="#"><i class="bi bi-megaphone"></i> التسويق</a>
+      <a href="#"><i class="bi bi-gear"></i> الإعدادات</a>
+    </nav>
+  </aside>
+
+  <main class="dashboard-main">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div>
+        <h2>عروض الأسعار</h2>
+        <p class="text-muted mb-0">عروض الأسعار المرسلة للعملاء ومتابعة حالتها</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> إضافة عرض</button>
+        <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
+      </div>
+    </div>
+
+    <div class="data-toolbar">
+      <select id="statusFilter" class="form-select" style="max-width:220px">
+        <option value="all">كل العروض</option>
+        <option value="draft">مسودة</option>
+        <option value="sent">مرسل</option>
+        <option value="accepted">مقبول</option>
+        <option value="rejected">مرفوض</option>
+      </select>
+      <span class="text-muted small" id="countLabel"></span>
+    </div>
+
+    <div class="data-table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>العميل</th>
+            <th>الجهة</th>
+            <th>المبلغ</th>
+            <th>صالح حتى</th>
+            <th>الحالة</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="quotesBody">
+          <tr><td colspan="6" class="empty-state">جاري التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="modal fade" id="quoteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form id="quoteForm">
+          <div class="modal-header">
+            <h5 class="modal-title" id="quoteModalTitle">إضافة عرض سعر</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="quoteId">
+            <div class="mb-3"><label class="form-label">اسم العميل *</label><input required id="clientName" class="form-control"></div>
+            <div class="mb-3"><label class="form-label">الجهة / الشركة</label><input id="companyName" class="form-control"></div>
+            <div class="row">
+              <div class="col-md-6 mb-3"><label class="form-label">المبلغ (د.ع)</label><input type="number" id="amount" class="form-control"></div>
+              <div class="col-md-6 mb-3"><label class="form-label">صالح حتى</label><input type="date" id="validUntil" class="form-control"></div>
+            </div>
+            <div class="mb-3"><label class="form-label">ملاحظات</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="submit" class="btn btn-brand">حفظ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/quotes.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
