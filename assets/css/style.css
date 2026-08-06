@@ -64,8 +64,8 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .eyebrow.on-dark{color:var(--gold-light)}
 
 /* ---------- hero ---------- */
-.hero{min-height:82vh;background:radial-gradient(120% 120% at 100% 0%,#1a9b6c 0%,var(--brand-dark) 55%,var(--brand-darker) 100%);color:#fff;position:relative;overflow:hidden}
-.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(201,166,107,.08),transparent 40%);pointer-events:none}
+.hero{min-height:82vh;background:linear-gradient(to left,rgba(7,31,26,.95) 0%,rgba(11,85,64,.9) 40%,rgba(11,85,64,.6) 65%,rgba(11,85,64,.32) 100%),url("../img/hero-charging-baghdad.webp");background-size:cover;background-position:center;color:#fff;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(201,166,107,.1),transparent 40%);pointer-events:none}
 .hero .badge-pill{display:inline-block;background:rgba(201,166,107,.15);border:1px solid rgba(201,166,107,.4);color:var(--gold-light);padding:.4rem 1rem;border-radius:50px;font-size:.75rem;letter-spacing:2px;font-weight:700}
 .hero p.lead{color:rgba(255,255,255,.85)}
 .hero-card{display:grid;gap:1rem}
@@ -114,6 +114,11 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .sector-grid .sector{height:100%;padding:.75rem}
 .sector-grid .sector-feature{grid-column:span 2;grid-row:span 2;font-size:1.1rem;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
 .sector-grid .sector-feature i{font-size:2.4rem!important;margin-bottom:.5rem!important}
+.sector-grid .sector-photo{position:relative;background-size:cover;background-position:center;border-color:transparent;overflow:hidden}
+.sector-grid .sector-photo::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,85,64,.35),rgba(7,31,26,.82));transition:background .25s var(--ease)}
+.sector-grid .sector-photo:hover::before{background:linear-gradient(180deg,rgba(11,85,64,.2),rgba(7,31,26,.7))}
+.sector-grid .sector-photo i,.sector-grid .sector-photo span{position:relative;z-index:1}
+.sector-grid .sector-photo{color:#fff}
 @media(max-width:768px){
   .sector-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:110px}
   .sector-grid .sector-feature{grid-column:span 2;grid-row:span 1;flex-direction:row;gap:.75rem;font-size:1rem}
@@ -174,6 +179,19 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .stats-bar .stat-item{text-align:center;color:#fff}
 .stats-bar .stat-item strong{display:block;font-size:2.2rem;font-family:"Poppins",sans-serif;color:var(--gold-light)}
 .stats-bar .stat-item span{font-size:.85rem;color:rgba(255,255,255,.75)}
+
+/* ---------- work gallery ---------- */
+.work-gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.work-gallery figure{margin:0;position:relative;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:3/4}
+.work-gallery img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s var(--ease)}
+.work-gallery figure:hover img{transform:scale(1.06)}
+.work-gallery figcaption{position:absolute;inset-inline:0;bottom:0;padding:1rem .9rem .8rem;background:linear-gradient(0deg,rgba(7,31,26,.9),transparent);color:#fff;font-size:.82rem;font-weight:700}
+@media(max-width:900px){.work-gallery{grid-template-columns:repeat(2,1fr)}}
+
+/* ---------- device photo ---------- */
+.device-photo{border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);position:relative}
+.device-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.device-photo .device-tag{position:absolute;top:.9rem;left:.9rem;background:rgba(7,31,26,.75);color:var(--gold-light);font-size:.72rem;font-weight:700;padding:.35rem .8rem;border-radius:50px;backdrop-filter:blur(4px)}
 
 /* ---------- trust / partners ---------- */
 .trust-box{border:1px solid rgba(10,46,38,.1);border-radius:var(--radius);padding:1.5rem;height:100%;background:#fff;transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
