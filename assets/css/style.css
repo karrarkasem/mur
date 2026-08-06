@@ -63,10 +63,10 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .hero-wave svg{width:100%;height:56px;display:block}
 
 /* ---------- live charging badge ---------- */
-.charge-badge{position:absolute;top:-16px;right:16px;z-index:2;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--gold-light),var(--gold));display:grid;place-items:center;color:var(--brand-darker);font-size:1.1rem;box-shadow:0 6px 18px rgba(0,0,0,.28);animation:pulse-ring 2.4s ease-out infinite}
-.charge-badge i{animation:bolt-flicker 2.4s ease-in-out infinite}
-.charge-badge-label{position:absolute;top:-13px;right:62px;z-index:2;background:rgba(7,31,26,.85);color:var(--gold-light);font-size:.68rem;font-weight:700;padding:.3rem .7rem;border-radius:50px;white-space:nowrap;backdrop-filter:blur(3px);animation:fade-in-out 2.4s ease-in-out infinite}
-@media(max-width:400px){.charge-badge-label{display:none}}
+.stat-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.live-chip{display:inline-flex;align-items:center;gap:.3rem;flex-shrink:0;background:linear-gradient(135deg,var(--gold-light),var(--gold));color:var(--brand-darker);font-size:.7rem;font-weight:800;padding:.3rem .65rem;border-radius:50px;box-shadow:0 4px 12px rgba(0,0,0,.22);animation:chip-pulse 2.4s ease-in-out infinite}
+.live-chip i{animation:bolt-flicker 2.4s ease-in-out infinite}
+@keyframes chip-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
 
 /* ---------- floating energy particles ---------- */
 .energy-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
@@ -76,17 +76,8 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
   0%{inset-inline-start:-40%}
   60%,100%{inset-inline-start:110%}
 }
-@keyframes pulse-ring{
-  0%{box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 0 rgba(217,180,127,.6)}
-  70%{box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 16px rgba(217,180,127,0)}
-  100%{box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 0 rgba(217,180,127,0)}
-}
 @keyframes bolt-flicker{
   0%,100%{opacity:1} 45%{opacity:.35} 50%{opacity:1} 55%{opacity:.5} 60%{opacity:1}
-}
-@keyframes fade-in-out{
-  0%,100%{opacity:0;transform:translateX(-6px)}
-  15%,85%{opacity:1;transform:translateX(0)}
 }
 @keyframes float-up{
   0%{transform:translateY(0) translateX(0) rotate(0deg);opacity:0}
@@ -95,7 +86,7 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
   100%{transform:translateY(-90vh) translateX(30px) rotate(30deg);opacity:0}
 }
 @media(prefers-reduced-motion:reduce){
-  .stat::before,.charge-badge,.charge-badge i,.charge-badge-label,.energy-particles i{animation:none!important}
+  .stat::before,.live-chip,.live-chip i,.energy-particles i{animation:none!important}
 }
 
 /* ---------- section headers ---------- */
