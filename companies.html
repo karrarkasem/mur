@@ -31,8 +31,9 @@
         <h2>الشركات</h2>
         <p class="text-muted mb-0">الشركات والعملاء اللي تتعامل وياهم مُر</p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 flex-wrap">
         <a href="locations-map.html" class="btn btn-outline-secondary"><i class="bi bi-map"></i> خارطة كل المواقع</a>
+        <button id="importBtn" class="btn btn-outline-secondary"><i class="bi bi-upload"></i> استيراد شركات</button>
         <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> إضافة شركة</button>
         <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
       </div>
@@ -110,8 +111,76 @@
     </div>
   </div>
 
+  <!-- Import Modal -->
+  <div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div style="display:contents">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="bi bi-upload"></i> استيراد شركات</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+
+            <!-- Step 1: source -->
+            <div id="importStep1">
+              <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#importFileTab" type="button">من ملف Excel / CSV</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#importTextTab" type="button">لصق نص</button></li>
+              </ul>
+              <div class="tab-content">
+                <div class="tab-pane fade show active" id="importFileTab">
+                  <input type="file" id="importFile" class="form-control" accept=".xlsx,.xls,.csv">
+                  <p class="text-muted small mt-2 mb-0">أي ملف إكسل أو CSV — أول صف يفضل يكون عناوين الأعمدة (اسم الشركة، الهاتف...الخ)، وترتيب الأعمدة مو مهم، راح تحدده بالخطوة الجاية.</p>
+                </div>
+                <div class="tab-pane fade" id="importTextTab">
+                  <textarea id="importText" class="form-control" rows="8" placeholder="الصق النص هنا — سطر لكل شركة، والحقول مفصولة بفاصلة (,) أو تاب.&#10;مثال:&#10;شركة الأمل, مول, أحمد كريم, 07701234567, ahmed@mail.com, بغداد, المنصور"></textarea>
+                  <p class="text-muted small mt-2 mb-0">انسخ من إكسل أو واتساب أو أي مكان — بس خلي كل شركة بسطر لحالها.</p>
+                </div>
+              </div>
+              <button type="button" id="importParseBtn" class="btn btn-brand mt-3"><i class="bi bi-arrow-left-circle"></i> التالي: معاينة البيانات</button>
+            </div>
+
+            <!-- Step 2: mapping + preview -->
+            <div id="importStep2" class="d-none">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="fw-bold mb-0">حدد أي عمود يقابل أي حقل</h6>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="firstRowHeader" checked>
+                  <label class="form-check-label small" for="firstRowHeader">أول صف هو عناوين أعمدة (مو بيانات)</label>
+                </div>
+              </div>
+              <div id="mappingRow" class="d-flex flex-wrap gap-2 mb-3"></div>
+
+              <h6 class="fw-bold mb-2">معاينة (أول 5 صفوف)</h6>
+              <div class="data-table-card mb-3">
+                <table class="data-table" id="previewTable"><thead></thead><tbody></tbody></table>
+              </div>
+              <p class="text-muted small" id="importSummary"></p>
+
+              <div class="d-flex gap-2">
+                <button type="button" id="importBackBtn" class="btn btn-outline-secondary">رجوع</button>
+                <button type="button" id="importConfirmBtn" class="btn btn-brand"><i class="bi bi-check-circle"></i> تأكيد الاستيراد</button>
+              </div>
+            </div>
+
+            <!-- Step 3: result -->
+            <div id="importStep3" class="d-none text-center py-4">
+              <i class="bi bi-check-circle-fill" style="font-size:3rem;color:var(--brand)"></i>
+              <h5 class="mt-3" id="importResultText"></h5>
+              <button type="button" class="btn btn-brand mt-2" data-bs-dismiss="modal">تم</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="assets/js/companies.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="assets/js/companies-import.js"></script>
 </body>
 </html>
