@@ -33,6 +33,7 @@ const coordsLabel = document.getElementById("coordsLabel");
 
 let allCompanies = [];
 let userCanManage = false;
+let currentUser = null;
 let map = null;
 let marker = null;
 let selectedLat = null;
@@ -107,7 +108,7 @@ function render() {
 
   tbody.innerHTML = rows.map((c) => `
     <tr>
-      <td><strong>${c.name}</strong>${c.address ? `<br><span class="text-muted small">${c.address}</span>` : ""}</td>
+      <td><strong>${c.name}</strong>${c.address ? `<br><span class="text-muted small">${c.address}</span>` : ""}${c.createdBy ? `<br><span class="text-muted small"><i class="bi bi-person"></i> أضافها ${c.createdBy}</span>` : ""}</td>
       <td>${c.sector || "—"}</td>
       <td>${c.governorate || "—"}</td>
       <td>${c.contactPerson || "—"}</td>
@@ -164,6 +165,24 @@ function openModal(company) {
 document.getElementById("addBtn").addEventListener("click", () => openModal(null));
 searchInput.addEventListener("input", render);
 
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const rows = allCompanies.map((c) => ({
+    "اسم الشركة": c.name || "",
+    "النشاط": c.sector || "",
+    "الشخص المسؤول": c.contactPerson || "",
+    "الهاتف": c.phone || "",
+    "الإيميل": c.email || "",
+    "المحافظة": c.governorate || "",
+    "العنوان": c.address || "",
+    "ملاحظات": c.notes || "",
+    "أضافها": c.createdBy || ""
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "الشركات");
+  XLSX.writeFile(wb, `شركات-مُر-${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("companyId").value;
@@ -182,9 +201,9 @@ form.addEventListener("submit", async (e) => {
 
   try {
     if (id) {
-      await updateDoc(doc(db, "companies", id), data);
+      await updateDoc(doc(db, "companies", id), { ...data, updatedBy: currentUser?.email || null, updatedAt: serverTimestamp() });
     } else {
-      await addDoc(collection(db, "companies"), { ...data, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "companies"), { ...data, createdBy: currentUser?.email || null, createdAt: serverTimestamp() });
     }
     modal.hide();
   } catch (err) {
@@ -193,6 +212,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 requireAuth((user, role) => {
+  currentUser = user;
   userCanManage = canManage(role);
   if (!userCanManage) document.getElementById("addBtn").classList.add("d-none");
   const q = query(collection(db, "companies"), orderBy("createdAt", "desc"));

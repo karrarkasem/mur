@@ -20,6 +20,7 @@ const modal = new bootstrap.Modal(modalEl);
 
 let allPosts = [];
 let userCanManage = false;
+let currentUserEmail = null;
 
 function formatDate(value) {
   if (!value) return "—";
@@ -114,9 +115,9 @@ form.addEventListener("submit", async (e) => {
 
   try {
     if (id) {
-      await updateDoc(doc(db, "contentPosts", id), data);
+      await updateDoc(doc(db, "contentPosts", id), { ...data, updatedBy: currentUserEmail, updatedAt: serverTimestamp() });
     } else {
-      await addDoc(collection(db, "contentPosts"), { ...data, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "contentPosts"), { ...data, createdBy: currentUserEmail, createdAt: serverTimestamp() });
     }
     modal.hide();
   } catch (err) {
@@ -125,6 +126,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 requireAuth((user, role) => {
+  currentUserEmail = user.email;
   userCanManage = canManage(role);
   if (!userCanManage) document.getElementById("addBtn").classList.add("d-none");
   const q = query(collection(db, "contentPosts"), orderBy("date", "desc"));

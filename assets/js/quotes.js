@@ -132,6 +132,7 @@ const discountPercent = document.getElementById("discountPercent");
 
 let allQuotes = [];
 let userCanManage = false;
+let currentUserEmail = null;
 
 function formatMoney(value) {
   return Number(value || 0).toLocaleString("ar-IQ");
@@ -207,7 +208,7 @@ function render() {
   tbody.innerHTML = rows.map((q) => `
     <tr>
       <td class="text-nowrap"><code>${q.quoteNumber || "—"}</code></td>
-      <td><strong>${q.clientName}</strong></td>
+      <td><strong>${q.clientName}</strong>${q.createdBy ? `<br><span class="text-muted small"><i class="bi bi-person"></i> ${q.createdBy}</span>` : ""}</td>
       <td>${q.companyName || "—"}</td>
       <td class="text-nowrap">${formatMoney(q.total)} د.ع</td>
       <td>${formatDate(q.validUntil)}</td>
@@ -312,10 +313,10 @@ form.addEventListener("submit", async (e) => {
 
   try {
     if (id) {
-      await updateDoc(doc(db, "quotes", id), data);
+      await updateDoc(doc(db, "quotes", id), { ...data, updatedBy: currentUserEmail, updatedAt: serverTimestamp() });
     } else {
       await addDoc(collection(db, "quotes"), {
-        ...data, status: "draft", quoteNumber: generateQuoteNumber(), createdAt: serverTimestamp()
+        ...data, status: "draft", quoteNumber: generateQuoteNumber(), createdBy: currentUserEmail, createdAt: serverTimestamp()
       });
     }
     modal.hide();
@@ -325,6 +326,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 requireAuth((user, role) => {
+  currentUserEmail = user.email;
   userCanManage = canManage(role);
   if (!userCanManage) document.getElementById("addBtn").classList.add("d-none");
   const q = query(collection(db, "quotes"), orderBy("createdAt", "desc"));

@@ -17,6 +17,7 @@ const modal = new bootstrap.Modal(modalEl);
 
 let allCampaigns = [];
 let userCanManage = false;
+let currentUserEmail = null;
 
 function formatDate(value) {
   if (!value) return "—";
@@ -118,9 +119,9 @@ form.addEventListener("submit", async (e) => {
 
   try {
     if (id) {
-      await updateDoc(doc(db, "campaigns", id), data);
+      await updateDoc(doc(db, "campaigns", id), { ...data, updatedBy: currentUserEmail, updatedAt: serverTimestamp() });
     } else {
-      await addDoc(collection(db, "campaigns"), { ...data, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "campaigns"), { ...data, createdBy: currentUserEmail, createdAt: serverTimestamp() });
     }
     modal.hide();
   } catch (err) {
@@ -129,6 +130,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 requireAuth((user, role) => {
+  currentUserEmail = user.email;
   userCanManage = canManage(role);
   if (!userCanManage) document.getElementById("addBtn").classList.add("d-none");
   const q = query(collection(db, "campaigns"), orderBy("createdAt", "desc"));

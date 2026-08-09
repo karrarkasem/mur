@@ -26,6 +26,7 @@ let allTasks = [];
 let allUsers = [];
 let userCanManage = false;
 let currentUid = null;
+let currentUserEmail = null;
 
 function formatDate(value) {
   if (!value) return "—";
@@ -49,6 +50,7 @@ function render() {
       <td><strong>${t.title}</strong>
         ${t.status === "blocked" && t.blockerNotes ? `<br><span class="small" style="color:#c0392b"><i class="bi bi-exclamation-triangle"></i> ${t.blockerNotes}</span>` : ""}
         ${t.notes ? `<br><span class="text-muted small">${t.notes}</span>` : ""}
+        ${t.createdBy ? `<br><span class="text-muted small"><i class="bi bi-person"></i> أضافها ${t.createdBy}</span>` : ""}
       </td>
       <td>${TYPE_LABELS[t.type] || "—"}</td>
       <td>${t.assignedToName || "—"}</td>
@@ -151,9 +153,9 @@ form.addEventListener("submit", async (e) => {
 
   try {
     if (id) {
-      await updateDoc(doc(db, "tasks", id), data);
+      await updateDoc(doc(db, "tasks", id), { ...data, updatedBy: currentUserEmail, updatedAt: serverTimestamp() });
     } else {
-      await addDoc(collection(db, "tasks"), { ...data, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "tasks"), { ...data, createdBy: currentUserEmail, createdAt: serverTimestamp() });
     }
     modal.hide();
   } catch (err) {
@@ -163,6 +165,7 @@ form.addEventListener("submit", async (e) => {
 
 requireAuth((user, role) => {
   currentUid = user.uid;
+  currentUserEmail = user.email;
   userCanManage = canManage(role);
   if (!userCanManage) document.getElementById("addBtn").classList.add("d-none");
 

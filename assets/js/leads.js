@@ -87,3 +87,19 @@ requireAuth((user, role) => {
 });
 
 statusFilter.addEventListener("change", render);
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const rows = allLeads.map((l) => ({
+    "الاسم": l.name || "",
+    "الجهة": l.company || "",
+    "الهاتف": l.phone || "",
+    "النوع": l.type || "",
+    "التفاصيل": l.message || "",
+    "الحالة": STATUS_LABELS[l.status] || "جديد",
+    "التاريخ": formatDate(l.createdAt)
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "العملاء المحتملون");
+  XLSX.writeFile(wb, `عملاء-محتملون-مُر-${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
