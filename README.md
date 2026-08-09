@@ -1,49 +1,59 @@
 # MUR Business Platform
 
-نسخة أولية تجمع بين:
+منصة أعمال متكاملة لشركة مُر (حلول شحن السيارات الكهربائية) تجمع بين:
 
-- موقع تعريفي عام
-- نموذج طلب دراسة
-- Firebase Firestore
-- Firebase Authentication
-- صفحة تسجيل دخول
-- Dashboard أولية
-- GitHub Pages
+- موقع تعريفي عام (`index.html`) — من نحن، الخدمات، حلول الشحن، القطاعات، معرض أعمال، نموذج طلب دراسة
+- لوحة تحكم إدارية كاملة، متصلة مباشرة بـ Firebase Firestore (بيانات لحظية Real-time)
+- صلاحيات وأدوار متعددة المستويات (admin / manager / sales / marketing / technician / viewer)
+- GitHub Pages للنشر
+
+## أقسام لوحة التحكم
+
+| الصفحة | الوظيفة |
+|---|---|
+| `dashboard.html` | ملخص وأرقام سريعة (KPIs) لكل قسم |
+| `companies.html` | إدارة الشركات — بحث، موقع دقيق على خارطة (محافظة + Lat/Lng)، واستيراد جماعي من ملف Excel/CSV أو نص ملصوق |
+| `locations-map.html` | خارطة تجمع كل الشركات المسجلة بمواقعها — تصلح للاستخدام بالتسويق |
+| `leads.html` | العملاء المحتملون الواردون تلقائيًا من نموذج الموقع العام |
+| `tasks.html` | مهام الفريق: نوع المهمة، موكلة لمن، أولوية، حالة (قيد التنفيذ / متعثرة مع توضيح المعوق / مكتملة) |
+| `quotes.html` | عروض أسعار احترافية: بنود مفصّلة، خصم، مسؤوليات كل طرف، تصدير للطباعة/PDF |
+| `users.html` | إدارة حسابات الفريق وصلاحياتهم (مخصص للـ admin فقط) |
+| `marketing.html` | مركز التسويق: حملات وعروض، رسائل جماعية (واتساب/إيميل)، تقويم محتوى |
+| `settings.html` | كلمة المرور الشخصية + معلومات الشركة المستخدمة بترويسة عروض الأسعار |
 
 ## خطوات الإعداد
 
 1. أنشئ مشروع Firebase.
-2. فعّل Authentication > Email/Password.
-3. أنشئ Firestore Database.
-4. انسخ إعدادات Firebase إلى:
+2. فعّل **Authentication → Sign-in method → Email/Password**.
+3. أنشئ **Firestore Database** (Production mode).
+4. انسخ إعدادات Firebase (من Project Settings → إضافة تطبيق ويب) إلى:
    `firebase/firebase-config.js`
-5. أنشئ مستخدمًا في Firebase Authentication.
-6. أضف مستندًا داخل collection باسم `users`.
-7. اجعل اسم المستند هو UID للمستخدم.
-8. أضف الحقول التالية:
+5. انسخ محتوى `firestore.rules` كامل إلى **Firestore Database → Rules** بالكونسول، واضغط Publish.
+   > القواعد تفرض صلاحيات حقيقية على مستوى القاعدة (مو بس بالواجهة) — القراءة لأي مستخدم مسجل دخول، والكتابة/الحذف بأغلب الأقسام مقصورة على admin/manager فقط.
+6. أنشئ أول مستخدم إداري يدويًا (لمرة واحدة فقط — بذرة أولى):
+   - Authentication → Users → Add user (إيميل + باسورد).
+   - انسخ الـ UID تبعه.
+   - Firestore → Start collection باسم `users` → Document ID = نفس الـ UID → أضف الحقول:
+     ```json
+     {
+       "name": "Admin",
+       "email": "admin@example.com",
+       "role": "admin",
+       "active": true
+     }
+     ```
+7. بعد أول admin، أي مستخدم جديد ينضاف مباشرة من داخل لوحة التحكم (`users.html`) بدون رجوع لـ Firebase Console.
+8. ارفع المشروع إلى GitHub وفعّل GitHub Pages من Settings → Pages → Deploy from a branch.
 
-```json
-{
-  "name": "Admin",
-  "email": "admin@example.com",
-  "role": "admin",
-  "active": true
-}
-```
+## الأدوار والصلاحيات
 
-9. انسخ محتوى `firestore.rules` إلى Firestore Rules.
-10. ارفع المشروع إلى GitHub.
-11. فعّل GitHub Pages من Settings > Pages.
+- **admin** — كل الصلاحيات، بما فيها إدارة المستخدمين وتعديل معلومات الشركة.
+- **manager** — إدارة كاملة للشركات/المهام/العملاء المحتملين/عروض الأسعار/التسويق (إضافة وتعديل وحذف).
+- **sales / marketing / technician / viewer** — قراءة ومشاهدة لكل الأقسام؛ المهام المسندة لهم شخصيًا يقدرون يحدّثون حالتها بس.
 
-## الأدوار المقترحة
+## ملاحظات تقنية
 
-- admin
-- manager
-- sales
-- marketing
-- technician
-- viewer
-
-## ملاحظة
-
-هذه نسخة MVP أولية، وليست النسخة النهائية.
+- لا يوجد باكند منفصل — الموقع بالكامل Static HTML/JS، ويتصل مباشرة بـ Firebase (Firestore + Authentication) من المتصفح.
+- الخرائط تعتمد على Leaflet + OpenStreetMap/CARTO (مجانية، بدون API key).
+- استيراد الشركات يستخدم مكتبة SheetJS (xlsx) لقراءة ملفات Excel، بدون رفع أي ملف لسيرفر خارجي — كله يصير بالمتصفح.
+- تصدير عروض الأسعار يفتح نافذة طباعة بالمتصفح (Ctrl+P → Save as PDF) بدل الاعتماد على مكتبة PDF خارجية.

@@ -2,8 +2,120 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp
+  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const DEFAULT_COMPANY_INFO = {
+  name: "مُر - حلول شحن السيارات الكهربائية",
+  phone: "07711763931",
+  email: "mur.ev.iq@gmail.com",
+  address: "بغداد - العراق",
+  website: "www.mur.ev.iq"
+};
+
+let companyInfoCache = null;
+async function getCompanyInfo() {
+  if (companyInfoCache) return companyInfoCache;
+  try {
+    const snap = await getDoc(doc(db, "settings", "company"));
+    companyInfoCache = snap.exists() ? { ...DEFAULT_COMPANY_INFO, ...snap.data() } : DEFAULT_COMPANY_INFO;
+  } catch {
+    companyInfoCache = DEFAULT_COMPANY_INFO;
+  }
+  return companyInfoCache;
+}
+
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function printQuote(quote) {
+  const company = await getCompanyInfo();
+  const win = window.open("", "_blank");
+  if (!win) { alert("المتصفح منع فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة لهذا الموقع."); return; }
+
+  const itemsRows = (quote.items || []).map((i) => `
+    <tr>
+      <td>${escapeHtml(i.description)}</td>
+      <td>${i.qty}</td>
+      <td>${formatMoney(i.unitPrice)}</td>
+      <td>${formatMoney(i.qty * i.unitPrice)}</td>
+    </tr>
+  `).join("");
+
+  const html = `
+    <!doctype html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="utf-8">
+      <title>عرض سعر ${escapeHtml(quote.quoteNumber)}</title>
+      <style>
+        body{font-family:Tahoma,Arial,sans-serif;color:#17281f;padding:2rem;max-width:800px;margin:auto}
+        .head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #106b4c;padding-bottom:1rem;margin-bottom:1.5rem}
+        .head h1{color:#106b4c;margin:0 0 .3rem}
+        .head p{margin:.15rem 0;font-size:.85rem;color:#555}
+        .quote-meta{text-align:left}
+        .quote-meta strong{display:block;font-size:1.1rem}
+        h3{color:#106b4c;border-bottom:1px solid #eee;padding-bottom:.3rem;margin-top:1.5rem}
+        table{width:100%;border-collapse:collapse;margin-top:.5rem}
+        th,td{border:1px solid #ddd;padding:.5rem;text-align:right;font-size:.9rem}
+        th{background:#f0f5f2}
+        .totals{margin-top:.75rem;text-align:left}
+        .totals div{display:flex;justify-content:space-between;max-width:280px;margin-inline-start:auto;padding:.2rem 0}
+        .totals .grand{font-weight:bold;font-size:1.2rem;border-top:2px solid #106b4c;padding-top:.4rem;margin-top:.4rem}
+        .two-col{display:flex;gap:2rem}
+        .two-col > div{flex:1}
+        .footer{margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:.8rem;color:#777;text-align:center}
+        @media print{ body{padding:0} }
+      </style>
+    </head>
+    <body>
+      <div class="head">
+        <div>
+          <h1>${escapeHtml(company.name)}</h1>
+          <p>${escapeHtml(company.phone)} | ${escapeHtml(company.email)}</p>
+          <p>${escapeHtml(company.address)} | ${escapeHtml(company.website)}</p>
+        </div>
+        <div class="quote-meta">
+          <strong>عرض سعر</strong>
+          <span>${escapeHtml(quote.quoteNumber)}</span><br>
+          <span>صالح حتى: ${formatDate(quote.validUntil)}</span>
+        </div>
+      </div>
+
+      <h3>معلومات العميل</h3>
+      <p><strong>${escapeHtml(quote.clientName)}</strong>${quote.companyName ? " — " + escapeHtml(quote.companyName) : ""}</p>
+      <p>${quote.phone ? escapeHtml(quote.phone) + " | " : ""}${quote.sector ? escapeHtml(quote.sector) : ""}</p>
+
+      <h3>بنود العرض</h3>
+      <table>
+        <thead><tr><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>المجموع</th></tr></thead>
+        <tbody>${itemsRows}</tbody>
+      </table>
+      <div class="totals">
+        <div><span>المجموع الفرعي</span><span>${formatMoney(quote.subtotal)} د.ع</span></div>
+        <div><span>الخصم</span><span>${quote.discountPercent || 0}%</span></div>
+        <div class="grand"><span>الإجمالي</span><span>${formatMoney(quote.total)} د.ع</span></div>
+      </div>
+
+      ${quote.scopeIncludes ? `<h3>يشمل هذا العرض</h3><p>${escapeHtml(quote.scopeIncludes).replace(/\n/g, "<br>")}</p>` : ""}
+
+      <div class="two-col">
+        ${quote.murResponsibilities ? `<div><h3>مسؤوليات ${escapeHtml(company.name)}</h3><p>${escapeHtml(quote.murResponsibilities).replace(/\n/g, "<br>")}</p></div>` : ""}
+        ${quote.clientResponsibilities ? `<div><h3>مسؤوليات العميل</h3><p>${escapeHtml(quote.clientResponsibilities).replace(/\n/g, "<br>")}</p></div>` : ""}
+      </div>
+
+      ${quote.notes ? `<h3>ملاحظات</h3><p>${escapeHtml(quote.notes).replace(/\n/g, "<br>")}</p>` : ""}
+
+      <div class="footer">${escapeHtml(company.name)} — ${escapeHtml(company.phone)} — ${escapeHtml(company.email)}</div>
+    </body>
+    </html>
+  `;
+
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => win.print();
+}
 
 const STATUS_LABELS = { draft: "مسودة", sent: "مرسل", accepted: "مقبول", rejected: "مرفوض" };
 
@@ -110,6 +222,7 @@ function render() {
       </td>
       <td class="text-nowrap">
         <button class="btn-icon" data-edit="${q.id}" title="${userCanManage ? "تعديل" : "عرض"}"><i class="bi bi-eye"></i></button>
+        <button class="btn-icon" data-print="${q.id}" title="طباعة / PDF"><i class="bi bi-printer"></i></button>
         ${userCanManage ? `<button class="btn-icon danger" data-delete="${q.id}" title="حذف"><i class="bi bi-trash"></i></button>` : ""}
       </td>
     </tr>
@@ -117,6 +230,9 @@ function render() {
 
   tbody.querySelectorAll("[data-edit]").forEach((btn) => {
     btn.addEventListener("click", () => openModal(allQuotes.find((q) => q.id === btn.dataset.edit)));
+  });
+  tbody.querySelectorAll("[data-print]").forEach((btn) => {
+    btn.addEventListener("click", () => printQuote(allQuotes.find((q) => q.id === btn.dataset.print)));
   });
   tbody.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", async () => {

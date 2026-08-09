@@ -18,9 +18,14 @@ service cloud.firestore {
       return signedIn() && (role() == "admin" || role() == "manager");
     }
 
+    function isAssignedTo(taskData) {
+      return signedIn() && taskData.assignedToUid == request.auth.uid;
+    }
+
     match /leads/{leadId} {
       allow create: if true;
-      allow read, update: if signedIn();
+      allow read: if signedIn();
+      allow update: if isManager();
       allow delete: if isManager();
     }
 
@@ -29,8 +34,43 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /companies/{companyId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if signedIn();
+      allow create, delete: if isManager();
+      // Managers can edit everything; the assigned person can update their
+      // own task (e.g. mark done, add a blocker note) without being a manager.
+      allow update: if isManager() || isAssignedTo(resource.data);
+    }
+
+    match /quotes/{quoteId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    match /contentPosts/{postId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    match /settings/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Deny anything not explicitly listed above (default-safe instead of
+    // the previous open "allow read, write: if signedIn()" catch-all).
     match /{document=**} {
-      allow read, write: if signedIn();
+      allow read, write: if false;
     }
   }
 }
