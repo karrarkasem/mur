@@ -25,7 +25,10 @@ service cloud.firestore {
     match /leads/{leadId} {
       allow create: if true;
       allow read: if signedIn();
-      allow update: if isManager();
+      // Any signed-in team member can log a follow-up / activity note or
+      // set the next follow-up date on a lead - not manager-only, since
+      // following up with leads is normal day-to-day sales work.
+      allow update: if signedIn();
       allow delete: if isManager();
     }
 

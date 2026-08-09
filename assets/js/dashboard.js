@@ -25,6 +25,36 @@ async function loadCounters() {
   }
 }
 
+function loadFollowUps() {
+  const box = document.getElementById("followUpsBox");
+  const list = document.getElementById("followUpsList");
+  const today = new Date().toISOString().slice(0, 10);
+
+  onSnapshot(query(collection(db, "leads"), where("nextFollowUp", "<=", today)), (snapshot) => {
+    const leads = snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((l) => l.status !== "closed")
+      .sort((a, b) => (a.nextFollowUp < b.nextFollowUp ? -1 : 1));
+
+    if (!leads.length) {
+      box.classList.add("d-none");
+      return;
+    }
+    box.classList.remove("d-none");
+
+    list.innerHTML = leads.map((l) => `
+      <div class="d-flex justify-content-between align-items-center py-2 ${l !== leads[leads.length - 1] ? "border-bottom" : ""}">
+        <div>
+          <strong>${l.name || "—"}</strong>
+          ${l.company ? `<span class="text-muted small"> — ${l.company}</span>` : ""}
+          <div class="small text-muted" dir="ltr">${l.phone || ""}</div>
+        </div>
+        <span class="status-badge ${l.nextFollowUp < today ? "status-rejected" : "status-pending"}">${l.nextFollowUp < today ? "متأخرة" : "اليوم"}</span>
+      </div>
+    `).join("") + `<a href="leads.html" class="btn btn-sm btn-outline-secondary mt-3">شوف كل العملاء المحتملين</a>`;
+  });
+}
+
 function loadMyTasks(uid) {
   const box = document.getElementById("myTasksBox");
   const list = document.getElementById("myTasksList");
@@ -59,5 +89,6 @@ requireAuth((user, role) => {
     `<strong>${user.email}</strong><br><span class="text-muted">الصلاحية: ${role}</span>`;
 
   loadCounters();
+  loadFollowUps();
   loadMyTasks(user.uid);
 });

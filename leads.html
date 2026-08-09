@@ -56,16 +56,49 @@
             <th>النوع</th>
             <th>التفاصيل</th>
             <th>التاريخ</th>
+            <th>المتابعة القادمة</th>
             <th>الحالة</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="leadsBody">
-          <tr><td colspan="8" class="empty-state">جاري التحميل...</td></tr>
+          <tr><td colspan="9" class="empty-state">جاري التحميل...</td></tr>
         </tbody>
       </table>
     </div>
   </main>
+
+  <!-- Lead Follow-up Modal -->
+  <div class="modal fade" id="leadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="leadModalTitle">متابعة العميل</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="leadModalInfo" class="mb-3"></div>
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">تاريخ المتابعة القادمة</label>
+            <div class="d-flex gap-2">
+              <input type="date" id="nextFollowUp" class="form-control">
+              <button type="button" id="saveFollowUpBtn" class="btn btn-brand text-nowrap">حفظ</button>
+            </div>
+          </div>
+
+          <hr>
+          <h6 class="fw-bold mb-2">سجل المتابعة</h6>
+          <div id="activityLog" style="max-height:220px;overflow:auto" class="mb-3"></div>
+
+          <div class="input-group">
+            <textarea id="newActivityText" class="form-control" rows="2" placeholder="اكتب ملاحظة: مثلاً - اتصلت به، قال يفكر بالعرض..."></textarea>
+          </div>
+          <button type="button" id="addActivityBtn" class="btn btn-outline-secondary btn-sm mt-2"><i class="bi bi-plus-lg"></i> إضافة ملاحظة</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="assets/js/leads.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
