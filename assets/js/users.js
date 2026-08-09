@@ -3,7 +3,7 @@ import { requireAuth } from "../../services/auth-guard.js";
 import { createUserWithEmailAndPassword, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, setDoc, updateDoc, deleteDoc, serverTimestamp
+  doc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 export const ROLE_LABELS = {
@@ -21,18 +21,42 @@ const tbody = document.getElementById("usersBody");
 const form = document.getElementById("userForm");
 const modalEl = document.getElementById("userModal");
 const modal = new bootstrap.Modal(modalEl);
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allUsers = [];
 let currentUid = null;
+let selectedIds = new Set();
+
+function deletableIds() {
+  // Never allow selecting/deleting your own account from here.
+  return allUsers.filter((u) => u.id !== currentUid).map((u) => u.id);
+}
+
+function updateBulkToolbar() {
+  const visibleIds = deletableIds();
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
 
 function render() {
   if (!allUsers.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state"><i class="bi bi-people"></i>ماكو مستخدمين بعد</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><i class="bi bi-people"></i>ماكو مستخدمين بعد</td></tr>`;
+    updateBulkToolbar();
     return;
   }
 
   tbody.innerHTML = allUsers.map((u) => `
     <tr>
+      <td>${u.id !== currentUid ? `<input type="checkbox" class="row-check" data-id="${u.id}" ${selectedIds.has(u.id) ? "checked" : ""}>` : ""}</td>
       <td><strong>${u.name || "—"}</strong>${u.id === currentUid ? ' <span class="status-badge status-contacted">أنت</span>' : ""}</td>
       <td dir="ltr" class="text-end">${u.email || "—"}</td>
       <td>${ROLE_LABELS[u.role] || u.role || "—"}</td>
@@ -78,7 +102,56 @@ function render() {
       }
     });
   });
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar();
+    });
+  });
+
+  updateBulkToolbar();
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "users", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const ids = deletableIds();
+  if (selectAllCheckbox.checked) ids.forEach((id) => selectedIds.add(id));
+  else ids.forEach((id) => selectedIds.delete(id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} مستخدم محدد؟ (يوقف وصولهم للوحة التحكم، بس حسابات الدخول نفسها لازم تتحذف يدويًا من Firebase Console). ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const ids = deletableIds();
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف كل المستخدمين ما عدا حسابك (${ids.length})؟ (يوقف وصولهم للوحة التحكم، بس حسابات الدخول نفسها لازم تتحذف يدويًا من Firebase Console). ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 document.getElementById("addBtn").addEventListener("click", () => {
   form.reset();
@@ -118,6 +191,6 @@ requireAuth((user, role) => {
     allUsers = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });

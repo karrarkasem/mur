@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp
+  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 export const GOVERNORATES = [
@@ -30,6 +30,10 @@ const modalEl = document.getElementById("companyModal");
 const modal = new bootstrap.Modal(modalEl);
 const governorateSelect = document.getElementById("governorate");
 const coordsLabel = document.getElementById("coordsLabel");
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allCompanies = [];
 let userCanManage = false;
@@ -38,6 +42,7 @@ let map = null;
 let marker = null;
 let selectedLat = null;
 let selectedLng = null;
+let selectedIds = new Set();
 
 governorateSelect.innerHTML += GOVERNORATES.map((g) => `<option value="${g}">${g}</option>`).join("");
 
@@ -95,19 +100,38 @@ function mapsLink(lat, lng) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
-function render() {
+function updateBulkToolbar(visibleIds) {
+  if (!userCanManage) return;
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
+
+function currentRows() {
   const term = searchInput.value.trim().toLowerCase();
-  const rows = term ? allCompanies.filter((c) => (c.name || "").toLowerCase().includes(term)) : allCompanies;
+  return term ? allCompanies.filter((c) => (c.name || "").toLowerCase().includes(term)) : allCompanies;
+}
+
+function render() {
+  const rows = currentRows();
 
   countLabel.textContent = `${rows.length} من ${allCompanies.length} شركة`;
+  selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="bi bi-building"></i>ماكو شركات مسجلة بعد</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="bi bi-building"></i>ماكو شركات مسجلة بعد</td></tr>`;
+    updateBulkToolbar([]);
     return;
   }
 
   tbody.innerHTML = rows.map((c) => `
     <tr>
+      <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${c.id}" ${selectedIds.has(c.id) ? "checked" : ""}>` : ""}</td>
       <td><strong>${c.name}</strong>${c.address ? `<br><span class="text-muted small">${c.address}</span>` : ""}${c.createdBy ? `<br><span class="text-muted small"><i class="bi bi-person"></i> أضافها ${c.createdBy}</span>` : ""}</td>
       <td>${c.sector || "—"}</td>
       <td>${c.governorate || "—"}</td>
@@ -136,7 +160,57 @@ function render() {
       }
     });
   });
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar(rows.map((c) => c.id));
+    });
+  });
+
+  updateBulkToolbar(rows.map((c) => c.id));
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "companies", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const rows = currentRows();
+  if (selectAllCheckbox.checked) rows.forEach((c) => selectedIds.add(c.id));
+  else rows.forEach((c) => selectedIds.delete(c.id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} شركة محددة؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const rows = currentRows();
+  if (!rows.length) return;
+  const scope = searchInput.value.trim() ? `نتائج البحث الحالية (${rows.length} شركة)` : `كل الشركات (${rows.length})`;
+  if (!confirm(`تأكيد حذف ${scope}؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(rows.map((c) => c.id));
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 function openModal(company) {
   form.reset();
@@ -220,6 +294,6 @@ requireAuth((user, role) => {
     allCompanies = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });

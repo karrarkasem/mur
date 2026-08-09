@@ -37,7 +37,7 @@
     </div>
 
     <div class="data-toolbar">
-      <div class="d-flex gap-2 flex-wrap">
+      <div class="d-flex gap-2 flex-wrap align-items-center">
         <select id="statusFilter" class="form-select" style="max-width:200px">
           <option value="all">كل الحالات</option>
           <option value="pending">قيد التنفيذ</option>
@@ -48,6 +48,8 @@
           <input class="form-check-input" type="checkbox" id="myTasksOnly">
           <label class="form-check-label" for="myTasksOnly">مهامي فقط</label>
         </div>
+        <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash"></i> حذف المحدد (<span id="selectedCount">0</span>)</button>
+        <button id="deleteAllBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash3"></i> حذف الكل</button>
       </div>
       <span class="text-muted small" id="countLabel"></span>
     </div>
@@ -56,6 +58,7 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th style="width:36px"><input type="checkbox" id="selectAllCheckbox" class="d-none"></th>
             <th>المهمة</th>
             <th>النوع</th>
             <th>موكلة إلى</th>
@@ -66,7 +69,7 @@
           </tr>
         </thead>
         <tbody id="tasksBody">
-          <tr><td colspan="7" class="empty-state">جاري التحميل...</td></tr>
+          <tr><td colspan="8" class="empty-state">جاري التحميل...</td></tr>
         </tbody>
       </table>
     </div>

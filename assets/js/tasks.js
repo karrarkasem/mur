@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp
+  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const TYPE_LABELS = {
@@ -21,32 +21,57 @@ const modal = new bootstrap.Modal(modalEl);
 const statusSelect = document.getElementById("status");
 const blockerWrap = document.getElementById("blockerWrap");
 const assignedToSelect = document.getElementById("assignedTo");
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allTasks = [];
 let allUsers = [];
 let userCanManage = false;
 let currentUid = null;
 let currentUserEmail = null;
+let selectedIds = new Set();
 
 function formatDate(value) {
   if (!value) return "—";
   return new Date(value).toLocaleDateString("ar-IQ", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function render() {
+function updateBulkToolbar(visibleIds) {
+  if (!userCanManage) return;
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
+
+function currentRows() {
   let rows = allTasks;
   if (statusFilter.value !== "all") rows = rows.filter((t) => (t.status || "pending") === statusFilter.value);
   if (myTasksOnly.checked) rows = rows.filter((t) => t.assignedToUid === currentUid);
+  return rows;
+}
+
+function render() {
+  const rows = currentRows();
 
   countLabel.textContent = `${rows.length} من ${allTasks.length} مهمة`;
+  selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="bi bi-check2-square"></i>ماكو مهام بهذا الفلتر</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="bi bi-check2-square"></i>ماكو مهام بهذا الفلتر</td></tr>`;
+    updateBulkToolbar([]);
     return;
   }
 
   tbody.innerHTML = rows.map((t) => `
     <tr${t.status === "blocked" ? ' style="background:rgba(192,57,43,.04)"' : ""}>
+      <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${t.id}" ${selectedIds.has(t.id) ? "checked" : ""}>` : ""}</td>
       <td><strong>${t.title}</strong>
         ${t.status === "blocked" && t.blockerNotes ? `<br><span class="small" style="color:#c0392b"><i class="bi bi-exclamation-triangle"></i> ${t.blockerNotes}</span>` : ""}
         ${t.notes ? `<br><span class="text-muted small">${t.notes}</span>` : ""}
@@ -103,7 +128,56 @@ function render() {
       }
     });
   });
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar(rows.map((t) => t.id));
+    });
+  });
+
+  updateBulkToolbar(rows.map((t) => t.id));
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "tasks", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const rows = currentRows();
+  if (selectAllCheckbox.checked) rows.forEach((t) => selectedIds.add(t.id));
+  else rows.forEach((t) => selectedIds.delete(t.id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} مهمة محددة؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const rows = currentRows();
+  if (!rows.length) return;
+  if (!confirm(`تأكيد حذف كل المهام المعروضة حاليًا (${rows.length})؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(rows.map((t) => t.id));
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 function populateAssigneeOptions() {
   assignedToSelect.innerHTML = `<option value="">— غير محددة —</option>` +
@@ -179,6 +253,6 @@ requireAuth((user, role) => {
     allTasks = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });

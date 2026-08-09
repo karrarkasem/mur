@@ -40,6 +40,8 @@
           <p class="text-muted mb-0">إنشاء حسابات الفريق وتحديد صلاحية كل شخص</p>
         </div>
         <div class="d-flex gap-2">
+          <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash"></i> حذف المحدد (<span id="selectedCount">0</span>)</button>
+          <button id="deleteAllBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash3"></i> حذف الكل</button>
           <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> إضافة مستخدم</button>
           <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
         </div>
@@ -49,6 +51,7 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th style="width:36px"><input type="checkbox" id="selectAllCheckbox"></th>
               <th>الاسم</th>
               <th>الإيميل</th>
               <th>الدور</th>
@@ -57,7 +60,7 @@
             </tr>
           </thead>
           <tbody id="usersBody">
-            <tr><td colspan="5" class="empty-state">جاري التحميل...</td></tr>
+            <tr><td colspan="6" class="empty-state">جاري التحميل...</td></tr>
           </tbody>
         </table>
       </div>

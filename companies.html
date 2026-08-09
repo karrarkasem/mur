@@ -41,7 +41,11 @@
     </div>
 
     <div class="data-toolbar">
-      <input id="searchInput" class="form-control" style="max-width:280px" placeholder="بحث بالاسم...">
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <input id="searchInput" class="form-control" style="max-width:280px" placeholder="بحث بالاسم...">
+        <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash"></i> حذف المحدد (<span id="selectedCount">0</span>)</button>
+        <button id="deleteAllBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash3"></i> حذف الكل</button>
+      </div>
       <span class="text-muted small" id="countLabel"></span>
     </div>
 
@@ -49,6 +53,7 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th style="width:36px"><input type="checkbox" id="selectAllCheckbox" class="d-none"></th>
             <th>اسم الشركة</th>
             <th>النشاط</th>
             <th>المحافظة</th>
@@ -59,7 +64,7 @@
           </tr>
         </thead>
         <tbody id="companiesBody">
-          <tr><td colspan="7" class="empty-state">جاري التحميل...</td></tr>
+          <tr><td colspan="8" class="empty-state">جاري التحميل...</td></tr>
         </tbody>
       </table>
     </div>

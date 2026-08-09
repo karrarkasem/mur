@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp
+  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const PLATFORM_LABELS = {
@@ -17,29 +17,53 @@ const countLabel = document.getElementById("countLabel");
 const form = document.getElementById("postForm");
 const modalEl = document.getElementById("postModal");
 const modal = new bootstrap.Modal(modalEl);
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allPosts = [];
 let userCanManage = false;
 let currentUserEmail = null;
+let selectedIds = new Set();
 
 function formatDate(value) {
   if (!value) return "—";
   return new Date(value).toLocaleDateString("ar-IQ", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function render() {
+function updateBulkToolbar(visibleIds) {
+  if (!userCanManage) return;
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
+
+function currentRows() {
   const filter = statusFilter.value;
-  const rows = filter === "all" ? allPosts : allPosts.filter((p) => (p.status || "draft") === filter);
+  return filter === "all" ? allPosts : allPosts.filter((p) => (p.status || "draft") === filter);
+}
+
+function render() {
+  const rows = currentRows();
 
   countLabel.textContent = `${rows.length} من ${allPosts.length} منشور`;
+  selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state"><i class="bi bi-calendar3"></i>ماكو منشورات مجدولة بعد</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><i class="bi bi-calendar3"></i>ماكو منشورات مجدولة بعد</td></tr>`;
+    updateBulkToolbar([]);
     return;
   }
 
   tbody.innerHTML = rows.map((p) => `
     <tr>
+      <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${p.id}" ${selectedIds.has(p.id) ? "checked" : ""}>` : ""}</td>
       <td class="text-nowrap">${formatDate(p.date)}</td>
       <td>${PLATFORM_LABELS[p.platform] || "—"}</td>
       <td><strong>${p.title || "—"}</strong>${p.content ? `<br><span class="text-muted small">${p.content.slice(0, 80)}${p.content.length > 80 ? "…" : ""}</span>` : ""}</td>
@@ -83,7 +107,56 @@ function render() {
       }
     });
   });
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar(rows.map((p) => p.id));
+    });
+  });
+
+  updateBulkToolbar(rows.map((p) => p.id));
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "contentPosts", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const rows = currentRows();
+  if (selectAllCheckbox.checked) rows.forEach((p) => selectedIds.add(p.id));
+  else rows.forEach((p) => selectedIds.delete(p.id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} منشور محدد؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const rows = currentRows();
+  if (!rows.length) return;
+  if (!confirm(`تأكيد حذف كل المنشورات المعروضة حاليًا (${rows.length})؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(rows.map((p) => p.id));
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 function openModal(post) {
   form.reset();
@@ -134,6 +207,6 @@ requireAuth((user, role) => {
     allPosts = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });

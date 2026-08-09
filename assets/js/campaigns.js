@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp
+  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const TYPE_LABELS = { intro: "تعريفي", promo: "ترويجي", limited: "محدود المدة" };
@@ -14,29 +14,53 @@ const countLabel = document.getElementById("countLabel");
 const form = document.getElementById("campaignForm");
 const modalEl = document.getElementById("campaignModal");
 const modal = new bootstrap.Modal(modalEl);
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allCampaigns = [];
 let userCanManage = false;
 let currentUserEmail = null;
+let selectedIds = new Set();
 
 function formatDate(value) {
   if (!value) return "—";
   return new Date(value).toLocaleDateString("ar-IQ", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function render() {
+function updateBulkToolbar(visibleIds) {
+  if (!userCanManage) return;
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
+
+function currentRows() {
   const filter = statusFilter.value;
-  const rows = filter === "all" ? allCampaigns : allCampaigns.filter((c) => (c.status || "planned") === filter);
+  return filter === "all" ? allCampaigns : allCampaigns.filter((c) => (c.status || "planned") === filter);
+}
+
+function render() {
+  const rows = currentRows();
 
   countLabel.textContent = `${rows.length} من ${allCampaigns.length} حملة`;
+  selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><i class="bi bi-megaphone"></i>ماكو حملات مسجلة بعد</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="bi bi-megaphone"></i>ماكو حملات مسجلة بعد</td></tr>`;
+    updateBulkToolbar([]);
     return;
   }
 
   tbody.innerHTML = rows.map((c) => `
     <tr>
+      <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${c.id}" ${selectedIds.has(c.id) ? "checked" : ""}>` : ""}</td>
       <td><strong>${c.name}</strong>${c.description ? `<br><span class="text-muted small">${c.description}</span>` : ""}</td>
       <td>${TYPE_LABELS[c.type] || "—"}</td>
       <td>${c.targetSegment || "—"}</td>
@@ -81,7 +105,56 @@ function render() {
       }
     });
   });
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar(rows.map((c) => c.id));
+    });
+  });
+
+  updateBulkToolbar(rows.map((c) => c.id));
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "campaigns", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const rows = currentRows();
+  if (selectAllCheckbox.checked) rows.forEach((c) => selectedIds.add(c.id));
+  else rows.forEach((c) => selectedIds.delete(c.id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} حملة محددة؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const rows = currentRows();
+  if (!rows.length) return;
+  if (!confirm(`تأكيد حذف كل الحملات المعروضة حاليًا (${rows.length})؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(rows.map((c) => c.id));
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 function openModal(campaign) {
   form.reset();
@@ -138,6 +211,6 @@ requireAuth((user, role) => {
     allCampaigns = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });

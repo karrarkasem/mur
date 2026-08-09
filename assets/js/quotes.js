@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc
+  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const DEFAULT_COMPANY_INFO = {
@@ -129,10 +129,15 @@ const itemsBody = document.getElementById("itemsBody");
 const subtotalDisplay = document.getElementById("subtotalDisplay");
 const totalDisplay = document.getElementById("totalDisplay");
 const discountPercent = document.getElementById("discountPercent");
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allQuotes = [];
 let userCanManage = false;
 let currentUserEmail = null;
+let selectedIds = new Set();
 
 function formatMoney(value) {
   return Number(value || 0).toLocaleString("ar-IQ");
@@ -194,19 +199,38 @@ discountPercent.addEventListener("input", recalcTotals);
 document.getElementById("addItemBtn").addEventListener("click", () => addItemRow());
 
 /* ---------- list ---------- */
-function render() {
+function updateBulkToolbar(visibleIds) {
+  if (!userCanManage) return;
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
+
+function currentRows() {
   const filter = statusFilter.value;
-  const rows = filter === "all" ? allQuotes : allQuotes.filter((q) => (q.status || "draft") === filter);
+  return filter === "all" ? allQuotes : allQuotes.filter((q) => (q.status || "draft") === filter);
+}
+
+function render() {
+  const rows = currentRows();
 
   countLabel.textContent = `${rows.length} من ${allQuotes.length} عرض`;
+  selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><i class="bi bi-file-earmark-text"></i>ماكو عروض بهذه الحالة</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><i class="bi bi-file-earmark-text"></i>ماكو عروض بهذه الحالة</td></tr>`;
+    updateBulkToolbar([]);
     return;
   }
 
   tbody.innerHTML = rows.map((q) => `
     <tr>
+      <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${q.id}" ${selectedIds.has(q.id) ? "checked" : ""}>` : ""}</td>
       <td class="text-nowrap"><code>${q.quoteNumber || "—"}</code></td>
       <td><strong>${q.clientName}</strong>${q.createdBy ? `<br><span class="text-muted small"><i class="bi bi-person"></i> ${q.createdBy}</span>` : ""}</td>
       <td>${q.companyName || "—"}</td>
@@ -254,7 +278,56 @@ function render() {
       }
     });
   });
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar(rows.map((q) => q.id));
+    });
+  });
+
+  updateBulkToolbar(rows.map((q) => q.id));
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "quotes", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const rows = currentRows();
+  if (selectAllCheckbox.checked) rows.forEach((q) => selectedIds.add(q.id));
+  else rows.forEach((q) => selectedIds.delete(q.id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} عرض محدد؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const rows = currentRows();
+  if (!rows.length) return;
+  if (!confirm(`تأكيد حذف كل العروض المعروضة حاليًا (${rows.length})؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(rows.map((q) => q.id));
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 function openModal(quote) {
   form.reset();
@@ -334,6 +407,6 @@ requireAuth((user, role) => {
     allQuotes = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     render();
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });
