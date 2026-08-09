@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, updateDoc, deleteDoc, arrayUnion
+  doc, updateDoc, deleteDoc, arrayUnion, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const STATUS_LABELS = { new: "جديد", contacted: "تم التواصل", closed: "مغلق" };
@@ -16,11 +16,16 @@ const leadModalInfo = document.getElementById("leadModalInfo");
 const nextFollowUpInput = document.getElementById("nextFollowUp");
 const activityLogEl = document.getElementById("activityLog");
 const newActivityText = document.getElementById("newActivityText");
+const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const deleteAllBtn = document.getElementById("deleteAllBtn");
+const selectedCountEl = document.getElementById("selectedCount");
 
 let allLeads = [];
 let userCanManage = false;
 let currentUserEmail = null;
 let openLeadId = null;
+let selectedIds = new Set();
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -44,19 +49,35 @@ function followUpBadge(lead) {
   return `<span class="status-badge ${cls}">${formatDateStr(lead.nextFollowUp)}</span>`;
 }
 
+function updateBulkToolbar(visibleIds) {
+  if (!userCanManage) return;
+  // Drop selected ids that are no longer in the current data/filter.
+  selectedIds.forEach((id) => { if (!visibleIds.includes(id)) selectedIds.delete(id); });
+
+  selectedCountEl.textContent = selectedIds.size;
+  deleteSelectedBtn.classList.toggle("d-none", selectedIds.size === 0);
+  deleteAllBtn.classList.toggle("d-none", visibleIds.length === 0);
+
+  selectAllCheckbox.checked = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id));
+  selectAllCheckbox.indeterminate = selectedIds.size > 0 && !selectAllCheckbox.checked;
+}
+
 function render() {
   const filter = statusFilter.value;
   const rows = filter === "all" ? allLeads : allLeads.filter((l) => l.status === filter);
 
   countLabel.textContent = `${rows.length} من ${allLeads.length} طلب`;
+  selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><i class="bi bi-inbox"></i>ماكو طلبات بهذه الحالة</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="bi bi-inbox"></i>ماكو طلبات بهذه الحالة</td></tr>`;
+    updateBulkToolbar([]);
     return;
   }
 
   tbody.innerHTML = rows.map((lead) => `
     <tr>
+      <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${lead.id}" ${selectedIds.has(lead.id) ? "checked" : ""}>` : ""}</td>
       <td><strong>${lead.name || "—"}</strong></td>
       <td>${lead.company || "—"}</td>
       <td dir="ltr" class="text-end">${lead.phone || "—"}</td>
@@ -80,7 +101,7 @@ function render() {
     </tr>
   `).join("");
 
-  tbody.querySelectorAll("[data-id]").forEach((select) => {
+  tbody.querySelectorAll("select.status-select").forEach((select) => {
     select.addEventListener("change", async (e) => {
       const id = e.target.dataset.id;
       try {
@@ -106,7 +127,60 @@ function render() {
   tbody.querySelectorAll("[data-followup]").forEach((btn) => {
     btn.addEventListener("click", () => openLeadModal(btn.dataset.followup));
   });
+
+  tbody.querySelectorAll(".row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      if (e.target.checked) selectedIds.add(e.target.dataset.id);
+      else selectedIds.delete(e.target.dataset.id);
+      updateBulkToolbar(rows.map((l) => l.id));
+    });
+  });
+
+  updateBulkToolbar(rows.map((l) => l.id));
 }
+
+async function bulkDelete(ids) {
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    const batch = writeBatch(db);
+    chunk.forEach((id) => batch.delete(doc(db, "leads", id)));
+    await batch.commit();
+  }
+}
+
+selectAllCheckbox.addEventListener("change", () => {
+  const filter = statusFilter.value;
+  const rows = filter === "all" ? allLeads : allLeads.filter((l) => l.status === filter);
+  if (selectAllCheckbox.checked) rows.forEach((l) => selectedIds.add(l.id));
+  else rows.forEach((l) => selectedIds.delete(l.id));
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", async () => {
+  const ids = [...selectedIds];
+  if (!ids.length) return;
+  if (!confirm(`تأكيد حذف ${ids.length} طلب محدد؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(ids);
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
+
+deleteAllBtn.addEventListener("click", async () => {
+  const filter = statusFilter.value;
+  const rows = filter === "all" ? allLeads : allLeads.filter((l) => l.status === filter);
+  if (!rows.length) return;
+  const scope = filter === "all" ? "كل الطلبات" : `كل الطلبات بحالة "${STATUS_LABELS[filter]}"`;
+  if (!confirm(`تأكيد حذف ${scope} (${rows.length} طلب)؟ ما يمكن التراجع.`)) return;
+  try {
+    await bulkDelete(rows.map((l) => l.id));
+    selectedIds.clear();
+  } catch (err) {
+    alert("تعذر الحذف: " + err.message);
+  }
+});
 
 function renderActivityLog(lead) {
   const log = [...(lead.activityLog || [])].reverse();
@@ -172,7 +246,7 @@ requireAuth((user, role) => {
       if (lead) renderActivityLog(lead);
     }
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });
 

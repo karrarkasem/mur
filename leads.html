@@ -37,12 +37,16 @@
     </div>
 
     <div class="data-toolbar">
-      <select id="statusFilter" class="form-select" style="max-width:220px">
-        <option value="all">كل الحالات</option>
-        <option value="new">جديد</option>
-        <option value="contacted">تم التواصل</option>
-        <option value="closed">مغلق</option>
-      </select>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <select id="statusFilter" class="form-select" style="max-width:220px">
+          <option value="all">كل الحالات</option>
+          <option value="new">جديد</option>
+          <option value="contacted">تم التواصل</option>
+          <option value="closed">مغلق</option>
+        </select>
+        <button id="deleteSelectedBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash"></i> حذف المحدد (<span id="selectedCount">0</span>)</button>
+        <button id="deleteAllBtn" class="btn btn-outline-danger btn-sm d-none"><i class="bi bi-trash3"></i> حذف الكل</button>
+      </div>
       <span class="text-muted small" id="countLabel"></span>
     </div>
 
@@ -50,6 +54,7 @@
       <table class="data-table">
         <thead>
           <tr>
+            <th style="width:36px"><input type="checkbox" id="selectAllCheckbox" class="d-none"></th>
             <th>الاسم</th>
             <th>الجهة</th>
             <th>الهاتف</th>
@@ -62,7 +67,7 @@
           </tr>
         </thead>
         <tbody id="leadsBody">
-          <tr><td colspan="9" class="empty-state">جاري التحميل...</td></tr>
+          <tr><td colspan="10" class="empty-state">جاري التحميل...</td></tr>
         </tbody>
       </table>
     </div>
