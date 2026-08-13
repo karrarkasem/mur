@@ -25,6 +25,38 @@ async function loadCounters() {
   }
 }
 
+const BASE_TITLE = document.title;
+
+function loadNewLeads() {
+  const box = document.getElementById("newLeadsBox");
+  const list = document.getElementById("newLeadsList");
+
+  onSnapshot(query(collection(db, "leads"), where("status", "==", "new")), (snapshot) => {
+    const leads = snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+    document.title = leads.length ? `(${leads.length}) ${BASE_TITLE}` : BASE_TITLE;
+
+    if (!leads.length) {
+      box.classList.add("d-none");
+      return;
+    }
+    box.classList.remove("d-none");
+
+    list.innerHTML = leads.map((l) => `
+      <div class="d-flex justify-content-between align-items-center py-2 ${l !== leads[leads.length - 1] ? "border-bottom" : ""}">
+        <div>
+          <strong>${l.name || "—"}</strong>
+          ${l.company ? `<span class="text-muted small"> — ${l.company}</span>` : ""}
+          <div class="small text-muted" dir="ltr">${l.phone || ""}</div>
+        </div>
+        <span class="status-badge status-new">جديد</span>
+      </div>
+    `).join("") + `<a href="leads.html" class="btn btn-sm btn-gold mt-3">افتح طلبات الدراسة</a>`;
+  });
+}
+
 function loadFollowUps() {
   const box = document.getElementById("followUpsBox");
   const list = document.getElementById("followUpsList");
@@ -89,6 +121,7 @@ requireAuth((user, role) => {
     `<strong>${user.email}</strong><br><span class="text-muted">الصلاحية: ${role}</span>`;
 
   loadCounters();
+  loadNewLeads();
   loadFollowUps();
   loadMyTasks(user.uid);
 });

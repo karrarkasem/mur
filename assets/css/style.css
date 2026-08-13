@@ -30,6 +30,7 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .bg-brand{background:var(--brand)!important}
 .bg-brand-dark{background:var(--brand-dark)!important}
 .text-gold{color:var(--gold-dark)!important}
+.border-gold{border:1px solid var(--gold)!important}
 .text-gold-light{color:var(--gold-light)!important}
 .btn{transition:transform .2s var(--ease),box-shadow .2s var(--ease),background-color .2s var(--ease),color .2s var(--ease);border-radius:.7rem;padding:.7rem 1.6rem;font-weight:700}
 .btn:hover{transform:translateY(-2px)}
