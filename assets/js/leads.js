@@ -70,7 +70,7 @@ function render() {
   selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state"><i class="bi bi-inbox"></i>ماكو طلبات بهذه الحالة</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state"><i class="bi bi-inbox"></i>ماكو طلبات بهذه الحالة</td></tr>`;
     updateBulkToolbar([]);
     return;
   }
@@ -81,6 +81,7 @@ function render() {
       <td><strong>${lead.name || "—"}</strong></td>
       <td>${lead.company || "—"}</td>
       <td dir="ltr" class="text-end">${lead.phone || "—"}</td>
+      <td>${lead.governorate || "—"}</td>
       <td>${lead.type || "—"}</td>
       <td style="max-width:220px;white-space:normal">${lead.message || "—"}</td>
       <td>${formatDate(lead.createdAt)}</td>
@@ -204,7 +205,13 @@ function openLeadModal(leadId) {
   document.getElementById("leadModalTitle").textContent = `متابعة: ${lead.name || ""}`;
   leadModalInfo.innerHTML = `
     <p class="mb-1"><strong>${lead.name || "—"}</strong>${lead.company ? " — " + lead.company : ""}</p>
-    <p class="text-muted small mb-0" dir="ltr">${lead.phone || ""}</p>
+    <p class="text-muted small mb-1" dir="ltr">${lead.phone || ""}${lead.email ? " · " + lead.email : ""}</p>
+    <p class="text-muted small mb-0">
+      ${lead.governorate ? `<span class="status-badge status-contacted">${lead.governorate}</span> ` : ""}
+      ${lead.type ? `<span class="status-badge status-pending">${lead.type}</span> ` : ""}
+      ${lead.stationsNeeded ? `<span class="status-badge status-closed">${lead.stationsNeeded} موقف/سيارة</span> ` : ""}
+      ${lead.preferredVisitTime ? `<span class="status-badge status-new">زيارة: ${lead.preferredVisitTime}</span>` : ""}
+    </p>
   `;
   nextFollowUpInput.value = lead.nextFollowUp || "";
   newActivityText.value = "";
@@ -246,7 +253,7 @@ requireAuth((user, role) => {
       if (lead) renderActivityLog(lead);
     }
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });
 
@@ -257,7 +264,11 @@ document.getElementById("exportBtn").addEventListener("click", () => {
     "الاسم": l.name || "",
     "الجهة": l.company || "",
     "الهاتف": l.phone || "",
+    "الإيميل": l.email || "",
+    "المحافظة": l.governorate || "",
     "النوع": l.type || "",
+    "عدد المواقف/السيارات": l.stationsNeeded || "",
+    "الوقت المفضل للزيارة": l.preferredVisitTime || "",
     "التفاصيل": l.message || "",
     "الحالة": STATUS_LABELS[l.status] || "جديد",
     "المتابعة القادمة": l.nextFollowUp || "",

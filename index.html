@@ -466,17 +466,47 @@
         <form id="leadForm" class="card p-4 shadow-sm">
           <input class="form-control mb-3" name="name" placeholder="الاسم" required>
           <input class="form-control mb-3" name="company" placeholder="اسم الجهة">
-          <input class="form-control mb-3" name="phone" placeholder="رقم الهاتف" required>
-          <select class="form-select mb-3" name="type">
-            <option>مجمع سكني</option>
-            <option>مول</option>
-            <option>مطعم/كافيه</option>
-            <option>جامعة</option>
-            <option>مستشفى</option>
-            <option>فندق</option>
-            <option>شركة</option>
-            <option>أخرى</option>
-          </select>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><input class="form-control" type="tel" name="phone" placeholder="رقم الهاتف" required></div>
+            <div class="col-6"><input class="form-control" type="email" name="email" placeholder="الإيميل (اختياري)"></div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <select class="form-select" name="governorate" required>
+                <option value="" selected disabled>المحافظة</option>
+                <option>بغداد</option><option>البصرة</option><option>نينوى</option>
+                <option>أربيل</option><option>النجف</option><option>كربلاء</option>
+                <option>كركوك</option><option>الأنبار</option><option>ذي قار</option>
+                <option>بابل</option><option>ديالى</option><option>واسط</option>
+                <option>ميسان</option><option>المثنى</option><option>القادسية</option>
+                <option>صلاح الدين</option><option>دهوك</option><option>السليمانية</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <select class="form-select" name="type">
+                <option>مجمع سكني</option>
+                <option>مول</option>
+                <option>مطعم/كافيه</option>
+                <option>جامعة</option>
+                <option>مستشفى</option>
+                <option>فندق</option>
+                <option>شركة</option>
+                <option>أخرى</option>
+              </select>
+            </div>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6"><input class="form-control" type="number" min="1" name="stationsNeeded" placeholder="عدد المواقف/السيارات"></div>
+            <div class="col-6">
+              <select class="form-select" name="preferredVisitTime">
+                <option value="" selected disabled>الوقت المفضل للزيارة</option>
+                <option>صباحاً (٩ص - ١٢م)</option>
+                <option>ظهراً (١٢م - ٤ع)</option>
+                <option>مساءً (٤ع - ٧م)</option>
+                <option>غير محدد</option>
+              </select>
+            </div>
+          </div>
           <textarea class="form-control mb-3" name="message" rows="4" placeholder="تفاصيل مختصرة"></textarea>
           <button class="btn btn-brand w-100" type="submit">إرسال الطلب</button>
           <small id="leadStatus" class="mt-2"></small>
