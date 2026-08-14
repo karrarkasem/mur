@@ -12,7 +12,9 @@ const COLLECTION_LABELS = {
   companies: "الشركات",
   campaigns: "الحملات",
   contentPosts: "منشورات التقويم",
-  users: "المستخدمون"
+  users: "المستخدمون",
+  evChargers: "محطات الشحن",
+  evCustomers: "عملاء الشحن"
 };
 
 const ITEM_LABEL = {
@@ -22,7 +24,9 @@ const ITEM_LABEL = {
   companies: (d) => d.name,
   campaigns: (d) => d.name,
   contentPosts: (d) => d.title,
-  users: (d) => d.name || d.email
+  users: (d) => d.name || d.email,
+  evChargers: (d) => d.name || d.ocppId,
+  evCustomers: (d) => d.name
 };
 
 const tbody = document.getElementById("trashBody");

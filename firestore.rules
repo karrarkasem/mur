@@ -75,11 +75,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // EV Charging Management - Phase 1 (dashboard + schema only). Only the
-    // collections the dashboard actually reads are defined here; the rest
-    // of the schema (customers, RFID, tariffs, wallet...) gets its own
-    // rules when those phases are built, so we don't guess at write
-    // patterns - especially the wallet ledger - before they're designed.
+    // EV Charging Management. Built incrementally by phase - tariffs and
+    // the wallet ledger get their own rules once those phases are built,
+    // since the wallet write pattern needs to be exact.
     match /evChargers/{chargerId} {
       allow read: if signedIn();
       allow create, update, delete: if isManager();
@@ -96,6 +94,19 @@ service cloud.firestore {
     match /evChargingSessions/{sessionId} {
       allow read: if signedIn();
       allow write: if isManager();
+    }
+
+    match /evCustomers/{customerId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    // Doc ID is the RFID tag code itself, so a real OCPP Authorize
+    // handler can look up the owning customer in one direct get() -
+    // matches the access pattern phase 6 will actually need.
+    match /evRfidTokens/{tagId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
     }
 
     // Recycle bin: every delete across the app writes a record here first
