@@ -250,6 +250,12 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .status-closed,.status-done,.status-accepted{background:#d1e7dd;color:#0a5c36}
 .status-rejected{background:#f8d7da;color:#842029}
 .type-badge{background:#e9ecef;color:#495057}
+.status-offline{background:#e9ecef;color:#495057}
+.ev-sidebar-title{color:var(--gold-light);font-weight:800;letter-spacing:1px;font-size:.85rem;margin-bottom:1.25rem}
+.sidebar .soon{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1rem;color:#dfe9e6;opacity:.45;font-weight:600}
+.sidebar .soon small{font-weight:600;font-size:.65rem}
+.sidebar .back-link{display:block;margin-top:1.5rem;padding:.8rem 1rem;color:#dfe9e6;text-decoration:none;font-weight:600;border-top:1px solid rgba(255,255,255,.12)}
+.sidebar .back-link:hover{color:var(--gold-light)}
 .empty-state{padding:3rem 1rem;text-align:center;color:var(--muted)}
 .empty-state i{font-size:2.5rem;color:rgba(10,46,38,.15);display:block;margin-bottom:.75rem}
 .btn-icon{border:none;background:transparent;color:var(--muted);padding:.3rem .5rem;border-radius:.4rem;transition:color .2s var(--ease),background .2s var(--ease)}

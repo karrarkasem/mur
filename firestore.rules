@@ -75,6 +75,29 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // EV Charging Management - Phase 1 (dashboard + schema only). Only the
+    // collections the dashboard actually reads are defined here; the rest
+    // of the schema (customers, RFID, tariffs, wallet...) gets its own
+    // rules when those phases are built, so we don't guess at write
+    // patterns - especially the wallet ledger - before they're designed.
+    match /evChargers/{chargerId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isManager();
+    }
+
+    // Wildcard path (not nested under evChargers/{chargerId}) so this also
+    // covers the dashboard's collectionGroup("connectors") query, which a
+    // nested match rule would not authorize.
+    match /{path=**}/connectors/{connectorId} {
+      allow read: if signedIn();
+      allow write: if isManager();
+    }
+
+    match /evChargingSessions/{sessionId} {
+      allow read: if signedIn();
+      allow write: if isManager();
+    }
+
     // Recycle bin: every delete across the app writes a record here first
     // (audit trail: who deleted what, when) instead of being destroyed
     // outright. Only managers/admins - the same people who can delete in
