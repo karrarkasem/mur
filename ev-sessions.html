@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>جلسات الشحن | إدارة الشحن | مُر</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+</head>
+<body class="dashboard-body">
+  <aside class="sidebar">
+    <div class="brand"><img src="assets/img/logo.png" alt="مُر" class="logo-img on-dark" style="height:2.1rem"></div>
+    <p class="ev-sidebar-title">MUR EV Charging</p>
+    <nav>
+      <a href="ev-dashboard.html"><i class="bi bi-speedometer2"></i> لوحة المتابعة</a>
+      <a href="ev-chargers.html"><i class="bi bi-ev-station"></i> المحطات</a>
+      <a href="ev-customers.html"><i class="bi bi-person-badge"></i> العملاء وRFID</a>
+      <a class="active" href="ev-sessions.html"><i class="bi bi-lightning-charge"></i> جلسات الشحن</a>
+      <a href="ev-wallet.html"><i class="bi bi-cash-coin"></i> طلبات التعبئة وRFID</a>
+      <span class="soon"><i class="bi bi-qr-code"></i> QR Charging <small>قريبًا</small></span>
+    </nav>
+    <a href="dashboard.html" class="back-link"><i class="bi bi-arrow-right"></i> رجوع للوحة الرئيسية</a>
+  </aside>
+
+  <main class="dashboard-main">
+    <div id="deniedBox" class="d-none">
+      <div class="card p-5 text-center">
+        <i class="bi bi-shield-lock fs-1 text-danger mb-3"></i>
+        <h4>هذا القسم مخصص للمدراء فقط</h4>
+        <p class="text-muted mb-0">لا تملك صلاحية الوصول لجلسات الشحن.</p>
+      </div>
+    </div>
+
+    <div id="content" class="d-none">
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+          <h2>جلسات الشحن</h2>
+          <p class="text-muted mb-0" id="countLabel"></p>
+        </div>
+        <div class="d-flex gap-2">
+          <button id="addBtn" class="btn btn-brand"><i class="bi bi-plus-lg"></i> تسجيل جلسة يدويًا</button>
+          <button id="logoutBtn" class="btn btn-outline-danger">تسجيل الخروج</button>
+        </div>
+      </div>
+
+      <div class="alert alert-warning small">
+        <i class="bi bi-info-circle"></i>
+        لحد ما يرتبط الشاحن فعليًا عبر OCPP، الجلسات تُسجّل يدويًا من الموظف (مثلاً لزبون دفع كاش أو مبيعات هاتفية) — تنعلّم "تسجيل يدوي" لتمييزها عن جلسات الشاحن الحقيقية مستقبلاً.
+      </div>
+
+      <div class="data-table-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>العميل</th>
+              <th>المحطة/الموصل</th>
+              <th>البداية / المدة</th>
+              <th>الطاقة</th>
+              <th>التكلفة</th>
+              <th>الدفع</th>
+              <th>المصدر</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsBody">
+            <tr><td colspan="7" class="empty-state">جاري التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal fade" id="sessionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <form id="sessionForm" style="display:contents">
+          <div class="modal-header">
+            <h5 class="modal-title">تسجيل جلسة شحن يدويًا</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3"><label class="form-label">العميل *</label><select required id="customerSelect" class="form-select"></select></div>
+            <div class="row g-2">
+              <div class="col-8 mb-3"><label class="form-label">المحطة *</label><select required id="chargerSelect" class="form-select"></select></div>
+              <div class="col-4 mb-3"><label class="form-label">الموصل</label><select id="connectorSelect" class="form-select"></select></div>
+            </div>
+            <div class="mb-3"><label class="form-label">قبل كم دقيقة بدأت الجلسة؟</label><input type="number" min="1" id="durationMinutes" class="form-control" value="30"></div>
+            <div class="row g-2">
+              <div class="col-4 mb-3"><label class="form-label">الطاقة (kWh) *</label><input required type="number" min="0" step="0.1" id="energyKwh" class="form-control"></div>
+              <div class="col-4 mb-3"><label class="form-label">سعر kWh (IQD)</label><input type="number" min="0" id="pricePerKwh" class="form-control"></div>
+              <div class="col-4 mb-3"><label class="form-label">التكلفة النهائية</label><input type="number" min="0" id="finalCost" class="form-control"></div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">طريقة الدفع</label>
+              <select id="paymentStatus" class="form-select">
+                <option value="wallet">خصم من المحفظة</option>
+                <option value="cash">دفع نقدي</option>
+                <option value="pending">بدون تحصيل حاليًا</option>
+              </select>
+              <div id="walletWarning" class="alert alert-danger small mt-2 d-none">⚠️ رصيد العميل الحالي غير كافٍ لهذا المبلغ.</div>
+            </div>
+            <div class="mb-3"><label class="form-label">سبب الإيقاف</label><input id="stopReason" class="form-control" placeholder="مثلاً: Local / EVDisconnected"></div>
+            <div class="mb-3"><label class="form-label">ملاحظات</label><textarea id="notes" class="form-control" rows="2"></textarea></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="submit" class="btn btn-brand">حفظ الجلسة</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/ev-sessions.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
