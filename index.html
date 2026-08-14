@@ -50,7 +50,7 @@
         <h1 class="display-4 fw-bold mt-3">شريكك في البنية التحتية لشحن السيارات الكهربائية</h1>
         <p class="lead mt-3">نقدم حلولاً متكاملة وموثوقة لتجهيز وتركيب وتشغيل وصيانة محطات شحن السيارات الكهربائية.</p>
         <div class="d-flex gap-2 flex-wrap mt-4">
-          <a href="#contact" class="btn btn-gold btn-lg">اطلب دراسة للموقع</a>
+          <a href="#contact" class="btn btn-gold btn-lg">اطلب الآن</a>
           <a href="#services" class="btn btn-outline-gold btn-lg">استكشف خدماتنا</a>
         </div>
       </div>
@@ -456,7 +456,7 @@
     <div class="row g-4 align-items-center">
       <div class="col-lg-6">
         <div class="section-head"><span>CONTACT</span><h2>ابدأ معنا</h2></div>
-        <p>اطلب زيارة أو دراسة أولية للموقع، وسيتواصل معك فريق مُر.</p>
+        <p>سواء عندك استفسار، تريد عرض سعر، أو تحتاج تركيب محطة شحن — عبّي الفورم وسيتواصل معك فريق مُر بأسرع وقت.</p>
         <p><i class="bi bi-telephone text-gold"></i> 07711763931</p>
         <p><i class="bi bi-envelope text-gold"></i> mur.ev.iq@gmail.com</p>
         <p><i class="bi bi-globe text-gold"></i> www.mur.ev.iq</p>
@@ -464,15 +464,24 @@
       </div>
       <div class="col-lg-6">
         <form id="leadForm" class="card p-4 shadow-sm">
+          <div class="mb-3">
+            <select class="form-select" name="requestType" id="requestType" required>
+              <option value="" selected disabled>شنو تحتاج؟ اختر نوع الطلب</option>
+              <option value="استفسار عام">استفسار عام</option>
+              <option value="طلب عرض سعر">طلب عرض سعر (كوتيشن)</option>
+              <option value="طلب تركيب">طلب تركيب محطة شحن</option>
+              <option value="دراسة موقع">دراسة موقع ميدانية</option>
+            </select>
+          </div>
           <input class="form-control mb-3" name="name" placeholder="الاسم" required>
-          <input class="form-control mb-3" name="company" placeholder="اسم الجهة">
+          <input class="form-control mb-3" name="company" placeholder="اسم الجهة (اختياري)">
           <div class="row g-2 mb-3">
             <div class="col-6"><input class="form-control" type="tel" name="phone" placeholder="رقم الهاتف" required></div>
             <div class="col-6"><input class="form-control" type="email" name="email" placeholder="الإيميل (اختياري)"></div>
           </div>
-          <div class="row g-2 mb-3">
+          <div class="row g-2 mb-3 field-group" data-show-for="طلب عرض سعر,طلب تركيب,دراسة موقع">
             <div class="col-6">
-              <select class="form-select" name="governorate" required>
+              <select class="form-select" name="governorate">
                 <option value="" selected disabled>المحافظة</option>
                 <option>بغداد</option><option>البصرة</option><option>نينوى</option>
                 <option>أربيل</option><option>النجف</option><option>كربلاء</option>
@@ -495,9 +504,9 @@
               </select>
             </div>
           </div>
-          <div class="row g-2 mb-3">
+          <div class="row g-2 mb-3 field-group" data-show-for="طلب عرض سعر,طلب تركيب,دراسة موقع">
             <div class="col-6"><input class="form-control" type="number" min="1" name="stationsNeeded" placeholder="عدد المواقف/السيارات"></div>
-            <div class="col-6">
+            <div class="col-6 field-group" data-show-for="طلب تركيب,دراسة موقع">
               <select class="form-select" name="preferredVisitTime">
                 <option value="" selected disabled>الوقت المفضل للزيارة</option>
                 <option>صباحاً (٩ص - ١٢م)</option>
@@ -507,7 +516,7 @@
               </select>
             </div>
           </div>
-          <textarea class="form-control mb-3" name="message" rows="4" placeholder="تفاصيل مختصرة"></textarea>
+          <textarea class="form-control mb-3" name="message" rows="4" placeholder="تفاصيل مختصرة / اكتب استفسارك هنا"></textarea>
           <button class="btn btn-brand w-100" type="submit">إرسال الطلب</button>
           <small id="leadStatus" class="mt-2"></small>
         </form>

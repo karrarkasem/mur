@@ -70,7 +70,7 @@ function render() {
   selectAllCheckbox.classList.toggle("d-none", !userCanManage);
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state"><i class="bi bi-inbox"></i>ماكو طلبات بهذه الحالة</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state"><i class="bi bi-inbox"></i>ماكو طلبات بهذه الحالة</td></tr>`;
     updateBulkToolbar([]);
     return;
   }
@@ -78,6 +78,7 @@ function render() {
   tbody.innerHTML = rows.map((lead) => `
     <tr>
       <td>${userCanManage ? `<input type="checkbox" class="row-check" data-id="${lead.id}" ${selectedIds.has(lead.id) ? "checked" : ""}>` : ""}</td>
+      <td>${lead.requestType || "—"}</td>
       <td><strong>${lead.name || "—"}</strong></td>
       <td>${lead.company || "—"}</td>
       <td dir="ltr" class="text-end">${lead.phone || "—"}</td>
@@ -207,6 +208,7 @@ function openLeadModal(leadId) {
     <p class="mb-1"><strong>${lead.name || "—"}</strong>${lead.company ? " — " + lead.company : ""}</p>
     <p class="text-muted small mb-1" dir="ltr">${lead.phone || ""}${lead.email ? " · " + lead.email : ""}</p>
     <p class="text-muted small mb-0">
+      ${lead.requestType ? `<span class="status-badge type-badge">${lead.requestType}</span> ` : ""}
       ${lead.governorate ? `<span class="status-badge status-contacted">${lead.governorate}</span> ` : ""}
       ${lead.type ? `<span class="status-badge status-pending">${lead.type}</span> ` : ""}
       ${lead.stationsNeeded ? `<span class="status-badge status-closed">${lead.stationsNeeded} موقف/سيارة</span> ` : ""}
@@ -253,7 +255,7 @@ requireAuth((user, role) => {
       if (lead) renderActivityLog(lead);
     }
   }, (err) => {
-    tbody.innerHTML = `<tr><td colspan="11" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" class="empty-state">تعذر تحميل البيانات: ${err.message}</td></tr>`;
   });
 });
 
@@ -261,6 +263,7 @@ statusFilter.addEventListener("change", render);
 
 document.getElementById("exportBtn").addEventListener("click", () => {
   const rows = allLeads.map((l) => ({
+    "نوع الطلب": l.requestType || "",
     "الاسم": l.name || "",
     "الجهة": l.company || "",
     "الهاتف": l.phone || "",

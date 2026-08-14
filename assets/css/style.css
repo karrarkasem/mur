@@ -249,6 +249,7 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .status-contacted,.status-sent{background:#cfe2ff;color:#084298}
 .status-closed,.status-done,.status-accepted{background:#d1e7dd;color:#0a5c36}
 .status-rejected{background:#f8d7da;color:#842029}
+.type-badge{background:#e9ecef;color:#495057}
 .empty-state{padding:3rem 1rem;text-align:center;color:var(--muted)}
 .empty-state i{font-size:2.5rem;color:rgba(10,46,38,.15);display:block;margin-bottom:.75rem}
 .btn-icon{border:none;background:transparent;color:var(--muted);padding:.3rem .5rem;border-radius:.4rem;transition:color .2s var(--ease),background .2s var(--ease)}
