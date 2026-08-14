@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>شحن السيارة | مُر EV Charging</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-brand-dark">
+  <div class="container">
+    <a class="navbar-brand" href="index.html"><img src="assets/img/logo.png" alt="مُر" class="logo-img on-dark"></a>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width:480px">
+  <div id="loadingBox" class="text-center py-5">
+    <div class="spinner-border text-success" role="status"></div>
+    <p class="text-muted mt-3">جاري تحميل بيانات المحطة...</p>
+  </div>
+
+  <div id="notFoundBox" class="d-none text-center py-5">
+    <i class="bi bi-exclamation-triangle fs-1 text-danger mb-3"></i>
+    <h5>ما لكينا هذه المحطة</h5>
+    <p class="text-muted">تأكد من رابط QR Code أو تواصل مع فريق مُر.</p>
+  </div>
+
+  <div id="stationBox" class="d-none">
+    <div class="card p-4 shadow-sm mb-3 text-center">
+      <h4 id="stationName" class="mb-1"></h4>
+      <p class="text-muted small mb-2" id="stationLocation"></p>
+      <div class="d-flex justify-content-center gap-2 mb-2">
+        <span class="status-badge" id="connectorStatusBadge"></span>
+        <span class="text-muted small" id="connectorLabel"></span>
+      </div>
+      <p class="mb-0"><strong id="priceLabel"></strong></p>
+    </div>
+
+    <!-- STEP 1: identify -->
+    <div id="identifyBox" class="card p-4 shadow-sm">
+      <h6 class="fw-bold mb-3"><i class="bi bi-credit-card-2-front"></i> عرّف عن نفسك ببطاقة RFID</h6>
+      <form id="identifyForm">
+        <input class="form-control mb-2" id="tagInput" dir="ltr" placeholder="كود بطاقة RFID" required>
+        <button class="btn btn-brand w-100" type="submit">متابعة</button>
+      </form>
+      <small id="identifyStatus" class="d-block mt-2"></small>
+      <p class="text-muted small mt-3 mb-0">ماكو بطاقة بعد؟ <a href="wallet-topup.html">اطلب وحدة من هنا</a>.</p>
+    </div>
+
+    <!-- STEP 2: customer + start -->
+    <div id="customerBox" class="card p-4 shadow-sm d-none">
+      <p class="mb-1">مرحبًا <strong id="customerName"></strong></p>
+      <p class="text-muted mb-3">رصيدك الحالي: <strong id="customerBalance"></strong></p>
+      <div id="balanceWarning" class="alert alert-warning small d-none">رصيدك غير كافٍ لبدء جلسة شحن. <a href="wallet-topup.html">عبّي محفظتك من هنا</a>.</div>
+      <div id="busyWarning" class="alert alert-warning small d-none">المحطة مشغولة حاليًا أو غير متاحة.</div>
+      <button id="startBtn" class="btn btn-brand w-100">⚡ ابدأ الشحن</button>
+      <small id="startStatus" class="d-block mt-2"></small>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="assets/js/charge.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

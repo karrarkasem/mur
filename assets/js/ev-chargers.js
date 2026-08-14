@@ -39,8 +39,24 @@ function connectorBadges(chargerId) {
   if (!connectors.length) return `<span class="text-muted small">—</span>`;
   return connectors
     .sort((a, b) => Number(a.id) - Number(b.id))
-    .map((c) => `<span class="status-badge ${CONNECTOR_BADGE[c.status] || "status-offline"}">#${c.id} ${c.status}</span>`)
-    .join(" ");
+    .map((c) => `
+      <span class="status-badge ${CONNECTOR_BADGE[c.status] || "status-offline"}">#${c.id} ${c.status}</span>
+      <button type="button" class="btn-icon" data-qr="${chargerId}" data-connector="${c.id}" title="QR Code"><i class="bi bi-qr-code"></i></button>
+    `).join(" ");
+}
+
+function chargeUrl(chargerId, connectorId) {
+  return `${location.origin}${location.pathname.replace(/ev-chargers\.html$/, "")}charge.html?c=${chargerId}&n=${connectorId}`;
+}
+
+function showQr(chargerId, connectorId) {
+  const charger = allChargers.find((c) => c.id === chargerId);
+  const url = chargeUrl(chargerId, connectorId);
+  document.getElementById("qrModalTitle").textContent = `${charger?.name || charger?.ocppId || ""} — موصل #${connectorId}`;
+  document.getElementById("qrUrl").value = url;
+  const canvas = document.getElementById("qrCanvas");
+  QRCode.toCanvas(canvas, url, { width: 220 }, (err) => { if (err) console.error(err); });
+  new bootstrap.Modal(document.getElementById("qrModal")).show();
 }
 
 function render() {
@@ -73,6 +89,9 @@ function render() {
 
   tbody.querySelectorAll("[data-edit]").forEach((btn) => {
     btn.addEventListener("click", () => openModal(allChargers.find((c) => c.id === btn.dataset.edit)));
+  });
+  tbody.querySelectorAll("[data-qr]").forEach((btn) => {
+    btn.addEventListener("click", () => showQr(btn.dataset.qr, btn.dataset.connector));
   });
   tbody.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", async () => {

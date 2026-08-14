@@ -2,13 +2,14 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, collectionGroup, onSnapshot, query, orderBy,
-  doc, addDoc, serverTimestamp, runTransaction, Timestamp
+  doc, addDoc, updateDoc, serverTimestamp, runTransaction, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const PAYMENT_LABELS = { wallet: "المحفظة", cash: "نقدًا", pending: "بدون تحصيل" };
 
 const deniedBox = document.getElementById("deniedBox");
 const content = document.getElementById("content");
+const chargeRequestsBody = document.getElementById("chargeRequestsBody");
 const tbody = document.getElementById("sessionsBody");
 const countLabel = document.getElementById("countLabel");
 const form = document.getElementById("sessionForm");
@@ -64,6 +65,34 @@ function render() {
       <td>${s.source === "manual" ? `<span class="status-badge type-badge">تسجيل يدوي</span>` : "OCPP"}</td>
     </tr>
   `).join("");
+}
+
+function renderChargeRequests(requests) {
+  const pending = requests.filter((r) => r.status === "pending");
+  if (!pending.length) {
+    chargeRequestsBody.innerHTML = `<tr><td colspan="4" class="empty-state">ماكو طلبات معلّقة</td></tr>`;
+    return;
+  }
+  chargeRequestsBody.innerHTML = pending.map((r) => `
+    <tr>
+      <td>${r.customerName || "—"}</td>
+      <td>${r.chargerName || "—"} <span class="text-muted small">#${r.connectorId}</span></td>
+      <td>${formatDateTime(r.requestedAt)}</td>
+      <td><button class="btn btn-sm btn-outline-secondary" data-ack="${r.id}">تم التفعيل يدويًا</button></td>
+    </tr>
+  `).join("");
+
+  chargeRequestsBody.querySelectorAll("[data-ack]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await updateDoc(doc(db, "evChargeRequests", btn.dataset.ack), {
+          status: "acknowledged", acknowledgedBy: currentUser?.email || null, acknowledgedAt: serverTimestamp()
+        });
+      } catch (err) {
+        alert("تعذر التحديث: " + err.message);
+      }
+    });
+  });
 }
 
 function populateSelects() {
@@ -197,4 +226,8 @@ requireAuth((user, role) => {
     });
     connectorsByCharger = grouped;
   });
+
+  onSnapshot(query(collection(db, "evChargeRequests"), orderBy("requestedAt", "desc")), (snap) => {
+    renderChargeRequests(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  }, (err) => { chargeRequestsBody.innerHTML = `<tr><td colspan="4" class="empty-state">تعذر التحميل: ${err.message}</td></tr>`; });
 });

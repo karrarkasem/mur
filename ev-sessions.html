@@ -19,7 +19,6 @@
       <a href="ev-customers.html"><i class="bi bi-person-badge"></i> العملاء وRFID</a>
       <a class="active" href="ev-sessions.html"><i class="bi bi-lightning-charge"></i> جلسات الشحن</a>
       <a href="ev-wallet.html"><i class="bi bi-cash-coin"></i> طلبات التعبئة وRFID</a>
-      <span class="soon"><i class="bi bi-qr-code"></i> QR Charging <small>قريبًا</small></span>
     </nav>
     <a href="dashboard.html" class="back-link"><i class="bi bi-arrow-right"></i> رجوع للوحة الرئيسية</a>
   </aside>
@@ -48,6 +47,18 @@
       <div class="alert alert-warning small">
         <i class="bi bi-info-circle"></i>
         لحد ما يرتبط الشاحن فعليًا عبر OCPP، الجلسات تُسجّل يدويًا من الموظف (مثلاً لزبون دفع كاش أو مبيعات هاتفية) — تنعلّم "تسجيل يدوي" لتمييزها عن جلسات الشاحن الحقيقية مستقبلاً.
+      </div>
+
+      <div class="card p-4 shadow-sm mb-4">
+        <h5 class="mb-3"><i class="bi bi-qr-code text-gold"></i> طلبات شحن واردة من QR (بانتظار التفعيل اليدوي)</h5>
+        <div class="data-table-card">
+          <table class="data-table">
+            <thead>
+              <tr><th>العميل</th><th>المحطة/الموصل</th><th>التاريخ</th><th></th></tr>
+            </thead>
+            <tbody id="chargeRequestsBody"><tr><td colspan="4" class="empty-state">جاري التحميل...</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="data-table-card">

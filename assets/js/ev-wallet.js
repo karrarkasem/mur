@@ -1,9 +1,13 @@
 import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
-  collection, onSnapshot, query, orderBy, limit, where, getDocs,
+  collection, onSnapshot, query, orderBy, limit, where, getDocs, getDoc,
   doc, addDoc, updateDoc, setDoc, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const tariffForm = document.getElementById("tariffForm");
+const tariffPriceInput = document.getElementById("tariffPrice");
+const tariffStatus = document.getElementById("tariffStatus");
 
 const METHOD_LABELS = { mastercard: "ماستركارد", zaincash: "زين كاش" };
 
@@ -168,13 +172,31 @@ function renderTransactions(txns) {
   `).join("");
 }
 
-requireAuth((user, role) => {
+tariffForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    await setDoc(doc(db, "evTariffs", "default"), {
+      pricePerKwh: Number(tariffPriceInput.value) || 0,
+      updatedBy: currentUser?.email || null, updatedAt: serverTimestamp()
+    });
+    tariffStatus.textContent = "تم الحفظ.";
+    tariffStatus.className = "text-success";
+  } catch (err) {
+    tariffStatus.textContent = "تعذر الحفظ: " + err.message;
+    tariffStatus.className = "text-danger";
+  }
+});
+
+requireAuth(async (user, role) => {
   currentUser = user;
   if (!canManage(role)) {
     deniedBox.classList.remove("d-none");
     return;
   }
   content.classList.remove("d-none");
+
+  const tariffSnap = await getDoc(doc(db, "evTariffs", "default"));
+  tariffPriceInput.value = tariffSnap.exists() ? tariffSnap.data().pricePerKwh : 300;
 
   onSnapshot(query(collection(db, "evTopupRequests"), orderBy("requestedAt", "desc")), (snap) => {
     allTopups = snap.docs.map((d) => ({ id: d.id, ...d.data() }));

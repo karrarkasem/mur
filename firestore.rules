@@ -78,8 +78,12 @@ service cloud.firestore {
     // EV Charging Management. Built incrementally by phase - tariffs and
     // the wallet ledger get their own rules once those phases are built,
     // since the wallet write pattern needs to be exact.
+    //
+    // Station name/location/status is meant to be visible at the point of
+    // use (a customer scanning the QR code on the physical unit isn't
+    // signed in), so it's public read - nothing sensitive lives here.
     match /evChargers/{chargerId} {
-      allow read: if signedIn();
+      allow read: if true;
       allow create, update, delete: if isManager();
     }
 
@@ -87,7 +91,7 @@ service cloud.firestore {
     // covers the dashboard's collectionGroup("connectors") query, which a
     // nested match rule would not authorize.
     match /{path=**}/connectors/{connectorId} {
-      allow read: if signedIn();
+      allow read: if true;
       allow write: if isManager();
     }
 
@@ -96,22 +100,31 @@ service cloud.firestore {
       allow write: if isManager();
     }
 
+    // "get" (read one doc by an ID you already know) is public so the QR
+    // page can show a customer's own name/balance after their RFID tag
+    // resolves to a customerId; "list" (browse/query the whole collection)
+    // stays signed-in only, so an anonymous visitor can never enumerate or
+    // search other customers - only look up the exact one they already
+    // have the ID for.
     match /evCustomers/{customerId} {
-      allow read: if signedIn();
+      allow get: if true;
+      allow list: if signedIn();
       allow create, update, delete: if isManager();
     }
 
-    // Doc ID is the RFID tag code itself, so a real OCPP Authorize
-    // handler can look up the owning customer in one direct get() -
-    // matches the access pattern phase 6 will actually need.
+    // Doc ID is the RFID tag code itself. "get" is public so the QR page
+    // can resolve a scanned/typed tag to its owner in one direct read -
+    // physically holding the card is the credential, same as tapping it on
+    // a real reader. "list" (browsing all tags) stays manager-only.
     match /evRfidTokens/{tagId} {
-      allow read: if signedIn();
+      allow get: if true;
+      allow list: if isManager();
       allow create, update, delete: if isManager();
     }
 
-    // Public customer requests (wallet top-up, RFID card) - same pattern as
-    // /leads: anyone can create one, only staff can read/act on them, since
-    // there's no customer-auth system yet (phase 5).
+    // Public customer requests (wallet top-up, RFID card, start-charging) -
+    // same pattern as /leads: anyone can create one, only staff can read/
+    // act on them, since there's no customer-auth system yet.
     match /evTopupRequests/{id} {
       allow create: if true;
       allow read, update: if isManager();
@@ -120,6 +133,18 @@ service cloud.firestore {
     match /evRfidRequests/{id} {
       allow create: if true;
       allow read, update: if isManager();
+    }
+
+    match /evChargeRequests/{id} {
+      allow create: if true;
+      allow read, update: if isManager();
+    }
+
+    // Single default price - public read so the QR page can show it before
+    // the customer identifies themselves.
+    match /evTariffs/{tariffId} {
+      allow read: if true;
+      allow write: if isManager();
     }
 
     // Wallet ledger: only written by staff confirming a top-up (via a
