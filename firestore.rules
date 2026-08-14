@@ -109,6 +109,26 @@ service cloud.firestore {
       allow create, update, delete: if isManager();
     }
 
+    // Public customer requests (wallet top-up, RFID card) - same pattern as
+    // /leads: anyone can create one, only staff can read/act on them, since
+    // there's no customer-auth system yet (phase 5).
+    match /evTopupRequests/{id} {
+      allow create: if true;
+      allow read, update: if isManager();
+    }
+
+    match /evRfidRequests/{id} {
+      allow create: if true;
+      allow read, update: if isManager();
+    }
+
+    // Wallet ledger: only written by staff confirming a top-up (via a
+    // transaction that also updates the customer's balance), never
+    // directly from the public request form.
+    match /evWalletTransactions/{id} {
+      allow read, create: if isManager();
+    }
+
     // Recycle bin: every delete across the app writes a record here first
     // (audit trail: who deleted what, when) instead of being destroyed
     // outright. Only managers/admins - the same people who can delete in
