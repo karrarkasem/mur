@@ -1,8 +1,9 @@
 import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
+import { moveToTrash, addTrashOpsToBatch } from "../../services/trash.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
+  doc, addDoc, updateDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const PLATFORM_LABELS = {
@@ -90,9 +91,11 @@ function render() {
   });
   tbody.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("تأكيد حذف هذا المنشور؟")) return;
+      if (!confirm("تأكيد نقل هذا المنشور لسلة المحذوفات؟ يقدر يترجع من هناك.")) return;
       try {
-        await deleteDoc(doc(db, "contentPosts", btn.dataset.delete));
+        const id = btn.dataset.delete;
+        const { id: _id, ...data } = allPosts.find((p) => p.id === id) || {};
+        await moveToTrash("contentPosts", id, data);
       } catch (err) {
         alert("تعذر الحذف: " + err.message);
       }
@@ -119,10 +122,15 @@ function render() {
 }
 
 async function bulkDelete(ids) {
-  for (let i = 0; i < ids.length; i += 400) {
-    const chunk = ids.slice(i, i + 400);
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
     const batch = writeBatch(db);
-    chunk.forEach((id) => batch.delete(doc(db, "contentPosts", id)));
+    chunk.forEach((id) => {
+      const post = allPosts.find((p) => p.id === id);
+      if (!post) return;
+      const { id: _id, ...data } = post;
+      addTrashOpsToBatch(batch, "contentPosts", id, data);
+    });
     await batch.commit();
   }
 }
@@ -137,7 +145,7 @@ selectAllCheckbox.addEventListener("change", () => {
 deleteSelectedBtn.addEventListener("click", async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  if (!confirm(`تأكيد حذف ${ids.length} منشور محدد؟ ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل ${ids.length} منشور محدد لسلة المحذوفات؟`)) return;
   try {
     await bulkDelete(ids);
     selectedIds.clear();
@@ -149,7 +157,7 @@ deleteSelectedBtn.addEventListener("click", async () => {
 deleteAllBtn.addEventListener("click", async () => {
   const rows = currentRows();
   if (!rows.length) return;
-  if (!confirm(`تأكيد حذف كل المنشورات المعروضة حاليًا (${rows.length})؟ ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل كل المنشورات المعروضة حاليًا (${rows.length}) لسلة المحذوفات؟`)) return;
   try {
     await bulkDelete(rows.map((p) => p.id));
     selectedIds.clear();

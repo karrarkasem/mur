@@ -27,8 +27,11 @@ service cloud.firestore {
       allow read: if signedIn();
       // Any signed-in team member can log a follow-up / activity note or
       // set the next follow-up date on a lead - not manager-only, since
-      // following up with leads is normal day-to-day sales work.
-      allow update: if signedIn();
+      // following up with leads is normal day-to-day sales work. Anything
+      // beyond those two fields (status, contact info, etc.) stays
+      // manager-only so a viewer/sales account can't rewrite a lead.
+      allow update: if isManager() ||
+        (signedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["nextFollowUp", "activityLog"]));
       allow delete: if isManager();
     }
 
@@ -46,8 +49,10 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create, delete: if isManager();
       // Managers can edit everything; the assigned person can update their
-      // own task (e.g. mark done, add a blocker note) without being a manager.
-      allow update: if isManager() || isAssignedTo(resource.data);
+      // own task (e.g. mark done, add a blocker note) without being a
+      // manager - but only those two fields, not title/priority/assignee.
+      allow update: if isManager() ||
+        (isAssignedTo(resource.data) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "blockerNotes"]));
     }
 
     match /quotes/{quoteId} {
@@ -68,6 +73,16 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read: if signedIn();
       allow write: if isAdmin();
+    }
+
+    // Recycle bin: every delete across the app writes a record here first
+    // (audit trail: who deleted what, when) instead of being destroyed
+    // outright. Only managers/admins - the same people who can delete in
+    // the first place - can see or restore from it; permanently purging
+    // an entry is admin-only.
+    match /deletedItems/{itemId} {
+      allow read, create, update: if isManager();
+      allow delete: if isAdmin();
     }
 
     // Deny anything not explicitly listed above (default-safe instead of

@@ -1,8 +1,9 @@
 import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
+import { moveToTrash, addTrashOpsToBatch } from "../../services/trash.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, updateDoc, deleteDoc, arrayUnion, writeBatch
+  doc, updateDoc, arrayUnion, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const STATUS_LABELS = { new: "جديد", contacted: "تم التواصل", closed: "مغلق" };
@@ -117,9 +118,10 @@ function render() {
   tbody.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       const id = e.currentTarget.dataset.delete;
-      if (!confirm("تأكيد حذف هذا الطلب؟")) return;
+      if (!confirm("تأكيد نقل هذا الطلب لسلة المحذوفات؟ يقدر يترجع من هناك.")) return;
       try {
-        await deleteDoc(doc(db, "leads", id));
+        const { id: _id, ...data } = allLeads.find((l) => l.id === id) || {};
+        await moveToTrash("leads", id, data);
       } catch (err) {
         alert("تعذر الحذف: " + err.message);
       }
@@ -142,10 +144,15 @@ function render() {
 }
 
 async function bulkDelete(ids) {
-  for (let i = 0; i < ids.length; i += 400) {
-    const chunk = ids.slice(i, i + 400);
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
     const batch = writeBatch(db);
-    chunk.forEach((id) => batch.delete(doc(db, "leads", id)));
+    chunk.forEach((id) => {
+      const lead = allLeads.find((l) => l.id === id);
+      if (!lead) return;
+      const { id: _id, ...data } = lead;
+      addTrashOpsToBatch(batch, "leads", id, data);
+    });
     await batch.commit();
   }
 }
@@ -161,7 +168,7 @@ selectAllCheckbox.addEventListener("change", () => {
 deleteSelectedBtn.addEventListener("click", async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  if (!confirm(`تأكيد حذف ${ids.length} طلب محدد؟ ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل ${ids.length} طلب محدد لسلة المحذوفات؟`)) return;
   try {
     await bulkDelete(ids);
     selectedIds.clear();
@@ -175,7 +182,7 @@ deleteAllBtn.addEventListener("click", async () => {
   const rows = filter === "all" ? allLeads : allLeads.filter((l) => l.status === filter);
   if (!rows.length) return;
   const scope = filter === "all" ? "كل الطلبات" : `كل الطلبات بحالة "${STATUS_LABELS[filter]}"`;
-  if (!confirm(`تأكيد حذف ${scope} (${rows.length} طلب)؟ ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل ${scope} (${rows.length} طلب) لسلة المحذوفات؟`)) return;
   try {
     await bulkDelete(rows.map((l) => l.id));
     selectedIds.clear();

@@ -1,9 +1,10 @@
 import { db, getSecondaryAuth } from "../../services/firebase.js";
 import { requireAuth } from "../../services/auth-guard.js";
+import { moveToTrash, addTrashOpsToBatch } from "../../services/trash.js";
 import { createUserWithEmailAndPassword, signOut as signOutSecondary } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, setDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch
+  doc, setDoc, updateDoc, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 export const ROLE_LABELS = {
@@ -94,9 +95,11 @@ function render() {
 
   tbody.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("تأكيد حذف هذا المستخدم؟ (هذا يوقف وصوله للوحة التحكم، بس حساب الدخول نفسه لازم يتحذف يدويًا من Firebase Console إذا تريد منعه نهائيًا)")) return;
+      if (!confirm("تأكيد نقل هذا المستخدم لسلة المحذوفات؟ هذا يوقف وصوله فورًا للوحة التحكم (يقدر يترجع من هناك)، بس حساب الدخول نفسه لازم يتحذف يدويًا من Firebase Console إذا تريد منعه نهائيًا.")) return;
       try {
-        await deleteDoc(doc(db, "users", btn.dataset.delete));
+        const id = btn.dataset.delete;
+        const { id: _id, ...data } = allUsers.find((u) => u.id === id) || {};
+        await moveToTrash("users", id, data);
       } catch (err) {
         alert("تعذر الحذف: " + err.message);
       }
@@ -114,10 +117,15 @@ function render() {
 }
 
 async function bulkDelete(ids) {
-  for (let i = 0; i < ids.length; i += 400) {
-    const chunk = ids.slice(i, i + 400);
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
     const batch = writeBatch(db);
-    chunk.forEach((id) => batch.delete(doc(db, "users", id)));
+    chunk.forEach((id) => {
+      const user = allUsers.find((u) => u.id === id);
+      if (!user) return;
+      const { id: _id, ...data } = user;
+      addTrashOpsToBatch(batch, "users", id, data);
+    });
     await batch.commit();
   }
 }
@@ -132,7 +140,7 @@ selectAllCheckbox.addEventListener("change", () => {
 deleteSelectedBtn.addEventListener("click", async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  if (!confirm(`تأكيد حذف ${ids.length} مستخدم محدد؟ (يوقف وصولهم للوحة التحكم، بس حسابات الدخول نفسها لازم تتحذف يدويًا من Firebase Console). ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل ${ids.length} مستخدم محدد لسلة المحذوفات؟ (يوقف وصولهم للوحة التحكم فورًا، بس حسابات الدخول نفسها لازم تتحذف يدويًا من Firebase Console)`)) return;
   try {
     await bulkDelete(ids);
     selectedIds.clear();
@@ -144,7 +152,7 @@ deleteSelectedBtn.addEventListener("click", async () => {
 deleteAllBtn.addEventListener("click", async () => {
   const ids = deletableIds();
   if (!ids.length) return;
-  if (!confirm(`تأكيد حذف كل المستخدمين ما عدا حسابك (${ids.length})؟ (يوقف وصولهم للوحة التحكم، بس حسابات الدخول نفسها لازم تتحذف يدويًا من Firebase Console). ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل كل المستخدمين ما عدا حسابك (${ids.length}) لسلة المحذوفات؟ (يوقف وصولهم للوحة التحكم فورًا، بس حسابات الدخول نفسها لازم تتحذف يدويًا من Firebase Console)`)) return;
   try {
     await bulkDelete(ids);
     selectedIds.clear();

@@ -9,8 +9,15 @@ export function requireAuth(onReady) {
       return;
     }
     const snap = await getDoc(doc(db, "users", user.uid));
-    const role = snap.exists() ? snap.data().role : "viewer";
-    onReady(user, role);
+    if (!snap.exists()) {
+      // Account was removed from the users collection (offboarded) - the
+      // Firebase Auth login still works, so don't fall back to a "viewer"
+      // role or they'd keep read access forever. Force them out instead.
+      await signOut(auth);
+      window.location.href = "login.html";
+      return;
+    }
+    onReady(user, snap.data().role);
   });
 
   document.getElementById("logoutBtn")?.addEventListener("click", async () => {

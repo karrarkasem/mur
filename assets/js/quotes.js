@@ -1,8 +1,9 @@
 import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
+import { moveToTrash, addTrashOpsToBatch } from "../../services/trash.js";
 import {
   collection, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, deleteDoc, serverTimestamp, getDoc, writeBatch
+  doc, addDoc, updateDoc, serverTimestamp, getDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const DEFAULT_COMPANY_INFO = {
@@ -261,9 +262,11 @@ function render() {
   });
   tbody.querySelectorAll("[data-delete]").forEach((btn) => {
     btn.addEventListener("click", async () => {
-      if (!confirm("تأكيد حذف هذا العرض؟")) return;
+      if (!confirm("تأكيد نقل هذا العرض لسلة المحذوفات؟ يقدر يترجع من هناك.")) return;
       try {
-        await deleteDoc(doc(db, "quotes", btn.dataset.delete));
+        const id = btn.dataset.delete;
+        const { id: _id, ...data } = allQuotes.find((q) => q.id === id) || {};
+        await moveToTrash("quotes", id, data);
       } catch (err) {
         alert("تعذر الحذف: " + err.message);
       }
@@ -290,10 +293,15 @@ function render() {
 }
 
 async function bulkDelete(ids) {
-  for (let i = 0; i < ids.length; i += 400) {
-    const chunk = ids.slice(i, i + 400);
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
     const batch = writeBatch(db);
-    chunk.forEach((id) => batch.delete(doc(db, "quotes", id)));
+    chunk.forEach((id) => {
+      const quote = allQuotes.find((q) => q.id === id);
+      if (!quote) return;
+      const { id: _id, ...data } = quote;
+      addTrashOpsToBatch(batch, "quotes", id, data);
+    });
     await batch.commit();
   }
 }
@@ -308,7 +316,7 @@ selectAllCheckbox.addEventListener("change", () => {
 deleteSelectedBtn.addEventListener("click", async () => {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  if (!confirm(`تأكيد حذف ${ids.length} عرض محدد؟ ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل ${ids.length} عرض محدد لسلة المحذوفات؟`)) return;
   try {
     await bulkDelete(ids);
     selectedIds.clear();
@@ -320,7 +328,7 @@ deleteSelectedBtn.addEventListener("click", async () => {
 deleteAllBtn.addEventListener("click", async () => {
   const rows = currentRows();
   if (!rows.length) return;
-  if (!confirm(`تأكيد حذف كل العروض المعروضة حاليًا (${rows.length})؟ ما يمكن التراجع.`)) return;
+  if (!confirm(`تأكيد نقل كل العروض المعروضة حاليًا (${rows.length}) لسلة المحذوفات؟`)) return;
   try {
     await bulkDelete(rows.map((q) => q.id));
     selectedIds.clear();
