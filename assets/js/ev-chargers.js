@@ -54,8 +54,14 @@ function showQr(chargerId, connectorId) {
   const url = chargeUrl(chargerId, connectorId);
   document.getElementById("qrModalTitle").textContent = `${charger?.name || charger?.ocppId || ""} — موصل #${connectorId}`;
   document.getElementById("qrUrl").value = url;
-  const canvas = document.getElementById("qrCanvas");
-  QRCode.toCanvas(canvas, url, { width: 220 }, (err) => { if (err) console.error(err); });
+  const container = document.getElementById("qrCanvas");
+  container.innerHTML = "";
+  try {
+    new QRCode(container, { text: url, width: 220, height: 220 });
+  } catch (err) {
+    console.error("QR render failed:", err);
+    container.textContent = "تعذر توليد صورة QR — انسخ الرابط تحت يدويًا.";
+  }
   new bootstrap.Modal(document.getElementById("qrModal")).show();
 }
 

@@ -113,7 +113,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          <canvas id="qrCanvas" class="mb-3"></canvas>
+          <div id="qrCanvas" class="mb-3 d-flex justify-content-center"></div>
           <p class="text-muted small">اطبع هذا الكود وثبّته على المحطة — الزبون يمسحه بكاميرا موبايله ويوصل مباشرة لصفحة الشحن.</p>
           <input id="qrUrl" class="form-control text-center" dir="ltr" readonly onclick="this.select()">
         </div>
@@ -123,6 +123,6 @@
 
   <script type="module" src="assets/js/ev-chargers.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </body>
 </html>
