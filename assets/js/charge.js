@@ -34,15 +34,20 @@ function currencyIQD(n) {
 async function init() {
   if (!chargerId) { showNotFound(); return; }
 
-  const chargerSnap = await getDoc(doc(db, "evChargers", chargerId));
-  if (!chargerSnap.exists()) { showNotFound(); return; }
-  charger = chargerSnap.data();
+  try {
+    const chargerSnap = await getDoc(doc(db, "evChargers", chargerId));
+    if (!chargerSnap.exists()) { showNotFound(); return; }
+    charger = chargerSnap.data();
 
-  const connectorSnap = await getDoc(doc(db, "evChargers", chargerId, "connectors", connectorId));
-  connector = connectorSnap.exists() ? connectorSnap.data() : { status: "Unavailable" };
+    const connectorSnap = await getDoc(doc(db, "evChargers", chargerId, "connectors", connectorId));
+    connector = connectorSnap.exists() ? connectorSnap.data() : { status: "Unavailable" };
 
-  const tariffSnap = await getDoc(doc(db, "evTariffs", "default"));
-  pricePerKwh = tariffSnap.exists() ? Number(tariffSnap.data().pricePerKwh || 0) : 0;
+    const tariffSnap = await getDoc(doc(db, "evTariffs", "default"));
+    pricePerKwh = tariffSnap.exists() ? Number(tariffSnap.data().pricePerKwh || 0) : 0;
+  } catch (err) {
+    showNotFound(`تعذر تحميل بيانات المحطة: ${err.message}`);
+    return;
+  }
 
   document.getElementById("stationName").textContent = charger.name || charger.ocppId || "محطة شحن";
   document.getElementById("stationLocation").textContent = charger.location || "";
@@ -55,9 +60,10 @@ async function init() {
   stationBox.classList.remove("d-none");
 }
 
-function showNotFound() {
+function showNotFound(message) {
   loadingBox.classList.add("d-none");
   notFoundBox.classList.remove("d-none");
+  if (message) notFoundBox.querySelector("p").textContent = message;
 }
 
 identifyForm.addEventListener("submit", async (e) => {
