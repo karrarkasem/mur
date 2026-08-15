@@ -98,6 +98,18 @@
                 <button type="button" id="addRfidBtn" class="btn btn-outline-secondary"><i class="bi bi-plus-lg"></i> ربط بطاقة</button>
               </div>
             </div>
+
+            <hr>
+            <h6 class="fw-bold mb-2"><i class="bi bi-key"></i> الدخول بكود + رقم سري (بدون بطاقة RFID)</h6>
+            <p id="loginCodeNoCustomer" class="text-muted small">احفظ بيانات العميل أول، وبعدها تقدر تسوّيله كود دخول.</p>
+            <div id="loginCodeSection" class="d-none">
+              <div id="loginCodeList" class="mb-2"></div>
+              <div class="row g-2">
+                <div class="col-5"><input id="loginCodeInput" class="form-control" placeholder="كود الساكن (مثلاً: D14-101)" dir="ltr"></div>
+                <div class="col-4"><input id="loginPinInput" class="form-control" placeholder="رقم سري (PIN)" dir="ltr"></div>
+                <div class="col-3"><button type="button" id="addLoginCodeBtn" class="btn btn-outline-secondary w-100"><i class="bi bi-plus-lg"></i> إضافة</button></div>
+              </div>
+            </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إغلاق</button>

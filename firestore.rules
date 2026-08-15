@@ -122,6 +122,18 @@ service cloud.firestore {
       allow create, update, delete: if isManager();
     }
 
+    // Alternate identification for residents without an RFID card yet:
+    // doc ID is a staff-assigned resident code, containing a PIN field.
+    // Same "get by known ID, no list" pattern as RFID - you can only look
+    // up an account if you already know its code, and the PIN is checked
+    // client-side after that single read (there's no way to browse or
+    // guess-search codes since list() stays manager-only).
+    match /evLoginCodes/{code} {
+      allow get: if true;
+      allow list: if isManager();
+      allow create, update, delete: if isManager();
+    }
+
     // Public customer requests (wallet top-up, RFID card, start-charging) -
     // same pattern as /leads: anyone can create one, only staff can read/
     // act on them, since there's no customer-auth system yet.

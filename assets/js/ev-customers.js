@@ -18,9 +18,16 @@ const rfidNoCustomer = document.getElementById("rfidNoCustomer");
 const rfidList = document.getElementById("rfidList");
 const rfidTagInput = document.getElementById("rfidTagInput");
 const addRfidBtn = document.getElementById("addRfidBtn");
+const loginCodeSection = document.getElementById("loginCodeSection");
+const loginCodeNoCustomer = document.getElementById("loginCodeNoCustomer");
+const loginCodeList = document.getElementById("loginCodeList");
+const loginCodeInput = document.getElementById("loginCodeInput");
+const loginPinInput = document.getElementById("loginPinInput");
+const addLoginCodeBtn = document.getElementById("addLoginCodeBtn");
 
 let allCustomers = [];
 let allRfid = [];
+let allLoginCodes = [];
 let currentUser = null;
 let userCanManage = false;
 let editingCustomerId = null;
@@ -31,6 +38,10 @@ function currencyIQD(n) {
 
 function customerRfidTags(customerId) {
   return allRfid.filter((r) => r.customerId === customerId);
+}
+
+function customerLoginCodes(customerId) {
+  return allLoginCodes.filter((c) => c.customerId === customerId);
 }
 
 function render() {
@@ -135,6 +146,65 @@ addRfidBtn.addEventListener("click", async () => {
   }
 });
 
+function renderLoginCodeList() {
+  const codes = editingCustomerId ? customerLoginCodes(editingCustomerId) : [];
+  if (!codes.length) {
+    loginCodeList.innerHTML = `<p class="text-muted small mb-2">ماكو كود دخول مسوّى بعد</p>`;
+    return;
+  }
+  loginCodeList.innerHTML = codes.map((c) => `
+    <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+      <span dir="ltr"><strong>${c.id}</strong> <span class="text-muted small">PIN: ${c.pin}</span></span>
+      <div class="d-flex gap-2 align-items-center">
+        <span class="status-badge ${c.active === false ? "status-rejected" : "status-done"}">${c.active === false ? "موقوف" : "فعّال"}</span>
+        <button type="button" class="btn-icon" data-toggle-code="${c.id}" title="${c.active === false ? "تفعيل" : "إيقاف"}"><i class="bi bi-power"></i></button>
+        <button type="button" class="btn-icon danger" data-remove-code="${c.id}" title="حذف"><i class="bi bi-trash"></i></button>
+      </div>
+    </div>
+  `).join("");
+
+  loginCodeList.querySelectorAll("[data-toggle-code]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const code = allLoginCodes.find((c) => c.id === btn.dataset.toggleCode);
+      try {
+        await updateDoc(doc(db, "evLoginCodes", code.id), { active: code.active === false ? true : false });
+      } catch (err) {
+        alert("تعذر التحديث: " + err.message);
+      }
+    });
+  });
+  loginCodeList.querySelectorAll("[data-remove-code]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("تأكيد حذف كود الدخول هذا؟")) return;
+      try {
+        await deleteDoc(doc(db, "evLoginCodes", btn.dataset.removeCode));
+      } catch (err) {
+        alert("تعذر الحذف: " + err.message);
+      }
+    });
+  });
+}
+
+addLoginCodeBtn.addEventListener("click", async () => {
+  const code = loginCodeInput.value.trim();
+  const pin = loginPinInput.value.trim();
+  if (!code || !pin || !editingCustomerId) { alert("اكتب الكود والرقم السري."); return; }
+  const customer = allCustomers.find((c) => c.id === editingCustomerId);
+  try {
+    await setDoc(doc(db, "evLoginCodes", code), {
+      customerId: editingCustomerId,
+      customerName: customer?.name || "",
+      pin,
+      active: true,
+      createdAt: serverTimestamp()
+    });
+    loginCodeInput.value = "";
+    loginPinInput.value = "";
+  } catch (err) {
+    alert("تعذر الإضافة: " + err.message);
+  }
+});
+
 function openModal(customer) {
   form.reset();
   editingCustomerId = customer?.id || null;
@@ -148,7 +218,9 @@ function openModal(customer) {
 
   rfidSection.classList.toggle("d-none", !editingCustomerId);
   rfidNoCustomer.classList.toggle("d-none", !!editingCustomerId);
-  if (editingCustomerId) renderRfidList();
+  loginCodeSection.classList.toggle("d-none", !editingCustomerId);
+  loginCodeNoCustomer.classList.toggle("d-none", !!editingCustomerId);
+  if (editingCustomerId) { renderRfidList(); renderLoginCodeList(); }
 
   modal.show();
 }
@@ -204,4 +276,9 @@ requireAuth((user, role) => {
     render();
     if (editingCustomerId) renderRfidList();
   }, (err) => { console.error("evRfidTokens:", err.message); });
+
+  onSnapshot(collection(db, "evLoginCodes"), (snapshot) => {
+    allLoginCodes = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (editingCustomerId) renderLoginCodeList();
+  }, (err) => { console.error("evLoginCodes:", err.message); });
 });

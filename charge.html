@@ -41,13 +41,26 @@
 
     <!-- STEP 1: identify -->
     <div id="identifyBox" class="card p-4 shadow-sm">
-      <h6 class="fw-bold mb-3"><i class="bi bi-credit-card-2-front"></i> عرّف عن نفسك ببطاقة RFID</h6>
+      <h6 class="fw-bold mb-3"><i class="bi bi-person-check"></i> عرّف عن نفسك</h6>
+
+      <ul class="nav nav-pills nav-justified mb-3" id="identifyTabs">
+        <li class="nav-item"><button class="nav-link active" data-mode="rfid" type="button">بطاقة RFID</button></li>
+        <li class="nav-item"><button class="nav-link" data-mode="code" type="button">كود ورقم سري</button></li>
+      </ul>
+
       <form id="identifyForm">
         <input class="form-control mb-2" id="tagInput" dir="ltr" placeholder="كود بطاقة RFID" required>
         <button class="btn btn-brand w-100" type="submit">متابعة</button>
       </form>
+
+      <form id="codeIdentifyForm" class="d-none">
+        <input class="form-control mb-2" id="codeInput" dir="ltr" placeholder="كود الساكن (مثلاً: D14-101)" required>
+        <input class="form-control mb-2" id="pinInput" dir="ltr" placeholder="الرقم السري (PIN)" required>
+        <button class="btn btn-brand w-100" type="submit">متابعة</button>
+      </form>
+
       <small id="identifyStatus" class="d-block mt-2"></small>
-      <p class="text-muted small mt-3 mb-0">ماكو بطاقة بعد؟ <a href="wallet-topup.html">اطلب وحدة من هنا</a>.</p>
+      <p class="text-muted small mt-3 mb-0">ماكو بطاقة ولا كود بعد؟ <a href="wallet-topup.html">اطلب وحدة من هنا</a>.</p>
     </div>
 
     <!-- STEP 2: customer + start -->

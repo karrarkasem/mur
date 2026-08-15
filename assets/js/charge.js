@@ -15,6 +15,7 @@ const stationBox = document.getElementById("stationBox");
 const identifyBox = document.getElementById("identifyBox");
 const customerBox = document.getElementById("customerBox");
 const identifyForm = document.getElementById("identifyForm");
+const codeIdentifyForm = document.getElementById("codeIdentifyForm");
 const identifyStatus = document.getElementById("identifyStatus");
 const startBtn = document.getElementById("startBtn");
 const startStatus = document.getElementById("startStatus");
@@ -66,6 +67,34 @@ function showNotFound(message) {
   if (message) notFoundBox.querySelector("p").textContent = message;
 }
 
+document.querySelectorAll("#identifyTabs [data-mode]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("#identifyTabs [data-mode]").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    const mode = btn.dataset.mode;
+    identifyForm.classList.toggle("d-none", mode !== "rfid");
+    codeIdentifyForm.classList.toggle("d-none", mode !== "code");
+    identifyStatus.textContent = "";
+  });
+});
+
+async function showCustomer(resolvedCustomerId, data) {
+  customerId = resolvedCustomerId;
+  customer = data;
+
+  document.getElementById("customerName").textContent = customer.name || "";
+  document.getElementById("customerBalance").textContent = currencyIQD(customer.walletBalance);
+
+  const hasBalance = Number(customer.walletBalance || 0) > 0;
+  const isAvailable = connector.status === "Available";
+  balanceWarning.classList.toggle("d-none", hasBalance);
+  busyWarning.classList.toggle("d-none", isAvailable);
+  startBtn.disabled = !hasBalance || !isAvailable;
+
+  identifyBox.classList.add("d-none");
+  customerBox.classList.remove("d-none");
+}
+
 identifyForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const tag = document.getElementById("tagInput").value.trim();
@@ -79,26 +108,42 @@ identifyForm.addEventListener("submit", async (e) => {
       identifyStatus.className = "d-block mt-2 text-danger";
       return;
     }
-    customerId = tagSnap.data().customerId;
-    const customerSnap = await getDoc(doc(db, "evCustomers", customerId));
+    const resolvedId = tagSnap.data().customerId;
+    const customerSnap = await getDoc(doc(db, "evCustomers", resolvedId));
     if (!customerSnap.exists()) {
       identifyStatus.textContent = "تعذر إيجاد الحساب المرتبط بهذه البطاقة.";
       identifyStatus.className = "d-block mt-2 text-danger";
       return;
     }
-    customer = customerSnap.data();
+    await showCustomer(resolvedId, customerSnap.data());
+  } catch (err) {
+    identifyStatus.textContent = "تعذر التحقق: " + err.message;
+    identifyStatus.className = "d-block mt-2 text-danger";
+  }
+});
 
-    document.getElementById("customerName").textContent = customer.name || "";
-    document.getElementById("customerBalance").textContent = currencyIQD(customer.walletBalance);
+codeIdentifyForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const code = document.getElementById("codeInput").value.trim();
+  const pin = document.getElementById("pinInput").value.trim();
+  identifyStatus.textContent = "جاري التحقق...";
+  identifyStatus.className = "d-block mt-2";
 
-    const hasBalance = Number(customer.walletBalance || 0) > 0;
-    const isAvailable = connector.status === "Available";
-    balanceWarning.classList.toggle("d-none", hasBalance);
-    busyWarning.classList.toggle("d-none", isAvailable);
-    startBtn.disabled = !hasBalance || !isAvailable;
-
-    identifyBox.classList.add("d-none");
-    customerBox.classList.remove("d-none");
+  try {
+    const codeSnap = await getDoc(doc(db, "evLoginCodes", code));
+    if (!codeSnap.exists() || codeSnap.data().active === false || codeSnap.data().pin !== pin) {
+      identifyStatus.textContent = "الكود أو الرقم السري غير صحيح. تواصل مع فريق مُر.";
+      identifyStatus.className = "d-block mt-2 text-danger";
+      return;
+    }
+    const resolvedId = codeSnap.data().customerId;
+    const customerSnap = await getDoc(doc(db, "evCustomers", resolvedId));
+    if (!customerSnap.exists()) {
+      identifyStatus.textContent = "تعذر إيجاد الحساب المرتبط بهذا الكود.";
+      identifyStatus.className = "d-block mt-2 text-danger";
+      return;
+    }
+    await showCustomer(resolvedId, customerSnap.data());
   } catch (err) {
     identifyStatus.textContent = "تعذر التحقق: " + err.message;
     identifyStatus.className = "d-block mt-2 text-danger";
