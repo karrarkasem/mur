@@ -1,0 +1,16 @@
+name = "mur-ocpp-server"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+
+# Non-secret config. FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are set
+# separately as secrets (never committed) - see README.md.
+[vars]
+FIREBASE_PROJECT_ID = "mur-ev"
+
+[[durable_objects.bindings]]
+name = "CHARGER_SESSION"
+class_name = "ChargerSession"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChargerSession"]
