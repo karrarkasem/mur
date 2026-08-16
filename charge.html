@@ -65,8 +65,22 @@
 
     <!-- STEP 2: customer + start -->
     <div id="customerBox" class="card p-4 shadow-sm d-none">
-      <p class="mb-1">مرحبًا <strong id="customerName"></strong></p>
-      <p class="text-muted mb-3">رصيدك الحالي: <strong id="customerBalance"></strong></p>
+      <p class="mb-2">مرحبًا <strong id="customerName"></strong></p>
+      <div class="row text-center mb-2">
+        <div class="col-4">
+          <div class="text-muted small mb-1">الرصيد</div>
+          <strong id="customerBalance"></strong>
+        </div>
+        <div class="col-4">
+          <div class="text-muted small mb-1">إجمالي الاستهلاك</div>
+          <strong id="customerTotalKwh"></strong>
+        </div>
+        <div class="col-4">
+          <div class="text-muted small mb-1">إجمالي المصروف</div>
+          <strong id="customerTotalSpent"></strong>
+        </div>
+      </div>
+      <p class="text-muted small text-center mb-3">هالأسبوع: <strong id="customerWeekKwh"></strong> · <strong id="customerWeekSpent"></strong></p>
       <div id="balanceWarning" class="alert alert-warning small d-none">رصيدك غير كافٍ لبدء جلسة شحن. <a href="wallet-topup.html">عبّي محفظتك من هنا</a>.</div>
       <div id="busyWarning" class="alert alert-warning small d-none">المحطة مشغولة حاليًا أو غير متاحة.</div>
       <button id="startBtn" class="btn btn-brand w-100">⚡ ابدأ الشحن</button>

@@ -32,6 +32,18 @@ function currencyIQD(n) {
   return Number(n || 0).toLocaleString("ar-IQ") + " د.ع";
 }
 
+// Same ISO-week bucketing used by ev-sessions.js when it writes weeklyStats
+// onto evCustomers - must stay in sync so the key we read here matches the
+// key that was written.
+function isoWeekKey(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
 async function init() {
   if (!chargerId) { showNotFound(); return; }
 
@@ -84,6 +96,13 @@ async function showCustomer(resolvedCustomerId, data) {
 
   document.getElementById("customerName").textContent = customer.name || "";
   document.getElementById("customerBalance").textContent = currencyIQD(customer.walletBalance);
+  document.getElementById("customerTotalKwh").textContent = `${Number(customer.totalConsumptionKwh || 0).toFixed(1)} kWh`;
+  document.getElementById("customerTotalSpent").textContent = currencyIQD(customer.totalSpent);
+
+  const weekKey = isoWeekKey(new Date());
+  const weekly = customer.weeklyStats?.[weekKey] || {};
+  document.getElementById("customerWeekKwh").textContent = `${Number(weekly.kwh || 0).toFixed(1)} kWh`;
+  document.getElementById("customerWeekSpent").textContent = currencyIQD(weekly.spent);
 
   const hasBalance = Number(customer.walletBalance || 0) > 0;
   const isAvailable = connector.status === "Available";

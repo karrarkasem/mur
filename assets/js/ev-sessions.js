@@ -39,6 +39,19 @@ function currencyIQD(n) {
   return Number(n || 0).toLocaleString("ar-IQ") + " د.ع";
 }
 
+// Keyed by ISO week so charge.html can show "this week's" consumption/spend
+// without needing a public list-query permission on evChargingSessions
+// (that collection stays signed-in-only - see firestore.rules). Must stay
+// in sync with the copy of this function in charge.js.
+function isoWeekKey(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
 function durationLabel(start, stop) {
   if (!start?.toDate || !stop?.toDate) return "—";
   const mins = Math.round((stop.toDate() - start.toDate()) / 60000);
@@ -153,6 +166,7 @@ form.addEventListener("submit", async (e) => {
 
   const stopTime = Timestamp.now();
   const startTime = Timestamp.fromMillis(stopTime.toMillis() - startMinutesAgo * 60000);
+  const weekKey = isoWeekKey(startTime.toDate());
 
   const sessionData = {
     customerId: customer.id, customerName: customer.name, customerPhone: customer.phone || "",
@@ -181,7 +195,9 @@ form.addEventListener("submit", async (e) => {
         t.update(customerRef, {
           walletBalance: newBalance,
           totalConsumptionKwh: increment(energyConsumedKwh),
-          totalSpent: increment(finalCost)
+          totalSpent: increment(finalCost),
+          [`weeklyStats.${weekKey}.kwh`]: increment(energyConsumedKwh),
+          [`weeklyStats.${weekKey}.spent`]: increment(finalCost)
         });
         t.update(chargerRef, { totalKwh: increment(energyConsumedKwh) });
         t.set(txnRef, {
@@ -195,7 +211,9 @@ form.addEventListener("submit", async (e) => {
       batch.set(sessionRef, sessionData);
       batch.update(doc(db, "evCustomers", customer.id), {
         totalConsumptionKwh: increment(energyConsumedKwh),
-        totalSpent: increment(finalCost)
+        totalSpent: increment(finalCost),
+        [`weeklyStats.${weekKey}.kwh`]: increment(energyConsumedKwh),
+        [`weeklyStats.${weekKey}.spent`]: increment(finalCost)
       });
       batch.update(doc(db, "evChargers", charger.id), { totalKwh: increment(energyConsumedKwh) });
       await batch.commit();

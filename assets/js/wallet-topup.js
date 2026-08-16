@@ -5,6 +5,17 @@ function currencyIQD(n) {
   return Number(n || 0).toLocaleString("ar-IQ") + " د.ع";
 }
 
+// Same ISO-week bucketing ev-sessions.js writes into evCustomers.weeklyStats -
+// must stay in sync with the copies of this function in ev-sessions.js/charge.js.
+function isoWeekKey(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
+}
+
 // ---------- Identify (RFID or code+PIN) ----------
 const identifyBox = document.getElementById("identifyBox");
 const accountBox = document.getElementById("accountBox");
@@ -40,6 +51,11 @@ function showAccount(id, data) {
   document.getElementById("acctBalance").textContent = currencyIQD(customer.walletBalance);
   document.getElementById("acctKwh").textContent = `${Number(customer.totalConsumptionKwh || 0).toFixed(1)} kWh`;
   document.getElementById("acctSpent").textContent = currencyIQD(customer.totalSpent);
+
+  const weekKey = isoWeekKey(new Date());
+  const weekly = customer.weeklyStats?.[weekKey] || {};
+  document.getElementById("acctWeekKwh").textContent = `${Number(weekly.kwh || 0).toFixed(1)} kWh`;
+  document.getElementById("acctWeekSpent").textContent = currencyIQD(weekly.spent);
 
   identifyBox.classList.add("d-none");
   accountBox.classList.remove("d-none");
