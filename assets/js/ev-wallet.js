@@ -86,7 +86,7 @@ async function confirmTopup(requestId) {
   if (!confirm(`تأكيد استلام دفعة ${currencyIQD(request.amount)} من ${request.customerName}؟ راح ينضاف المبلغ لمحفظته.`)) return;
 
   try {
-    const customerId = await findOrCreateCustomer(request.customerPhone, request.customerName);
+    const customerId = request.customerId || await findOrCreateCustomer(request.customerPhone, request.customerName);
     const customerRef = doc(db, "evCustomers", customerId);
     const txnRef = doc(collection(db, "evWalletTransactions"));
     const requestRef = doc(db, "evTopupRequests", requestId);

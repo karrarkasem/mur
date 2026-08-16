@@ -2,7 +2,7 @@ import { db } from "../../services/firebase.js";
 import { requireAuth, canManage } from "../../services/auth-guard.js";
 import {
   collection, collectionGroup, onSnapshot, query, orderBy,
-  doc, addDoc, updateDoc, serverTimestamp, runTransaction, Timestamp
+  doc, addDoc, updateDoc, serverTimestamp, runTransaction, Timestamp, increment, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const PAYMENT_LABELS = { wallet: "المحفظة", cash: "نقدًا", pending: "بدون تحصيل" };
@@ -173,23 +173,32 @@ form.addEventListener("submit", async (e) => {
 
       await runTransaction(db, async (t) => {
         const customerSnap = await t.get(customerRef);
-        const chargerSnap = await t.get(chargerRef);
         const balance = Number(customerSnap.data()?.walletBalance || 0);
         if (balance < finalCost) throw new Error("رصيد العميل غير كافي لتغطية هذه الجلسة.");
         const newBalance = balance - finalCost;
-        const newTotalKwh = Number(customerSnap.data()?.totalConsumptionKwh || 0) + energyConsumedKwh;
-        const chargerTotalKwh = Number(chargerSnap.data()?.totalKwh || 0) + energyConsumedKwh;
 
         t.set(sessionRef, sessionData);
-        t.update(customerRef, { walletBalance: newBalance, totalConsumptionKwh: newTotalKwh });
-        t.update(chargerRef, { totalKwh: chargerTotalKwh });
+        t.update(customerRef, {
+          walletBalance: newBalance,
+          totalConsumptionKwh: increment(energyConsumedKwh),
+          totalSpent: increment(finalCost)
+        });
+        t.update(chargerRef, { totalKwh: increment(energyConsumedKwh) });
         t.set(txnRef, {
           customerId: customer.id, type: "charge", amount: finalCost, relatedSessionId: sessionRef.id,
           balanceAfter: newBalance, by: currentUser?.email || null, at: serverTimestamp()
         });
       });
     } else {
-      await addDoc(collection(db, "evChargingSessions"), sessionData);
+      const sessionRef = doc(collection(db, "evChargingSessions"));
+      const batch = writeBatch(db);
+      batch.set(sessionRef, sessionData);
+      batch.update(doc(db, "evCustomers", customer.id), {
+        totalConsumptionKwh: increment(energyConsumedKwh),
+        totalSpent: increment(finalCost)
+      });
+      batch.update(doc(db, "evChargers", charger.id), { totalKwh: increment(energyConsumedKwh) });
+      await batch.commit();
     }
     modal.hide();
   } catch (err) {
