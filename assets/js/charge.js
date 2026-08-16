@@ -1,6 +1,6 @@
 import { db } from "../../services/firebase.js";
 import {
-  doc, getDoc, addDoc, collection, serverTimestamp
+  doc, getDoc, addDoc, collection, serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const CONNECTOR_BADGE = { Available: "status-done", Charging: "status-contacted", Faulted: "status-rejected", Unavailable: "status-offline" };
@@ -27,6 +27,7 @@ let connector = null;
 let pricePerKwh = 0;
 let customer = null;
 let customerId = null;
+let sawCharging = false;
 
 function currencyIQD(n) {
   return Number(n || 0).toLocaleString("ar-IQ") + " د.ع";
@@ -169,6 +170,30 @@ codeIdentifyForm.addEventListener("submit", async (e) => {
   }
 });
 
+// Watches the connector's real status as reported by the physical charger
+// over OCPP (StatusNotification -> Firestore, wired in phase 6). Once we've
+// actually seen it reach "Charging" and it then leaves that state, that's a
+// real signal the session ended - not a guess, and not battery-percentage
+// based since most AC chargers never report SoC.
+function watchConnector() {
+  const connectorRef = doc(db, "evChargers", chargerId, "connectors", connectorId);
+  onSnapshot(connectorRef, (snap) => {
+    const status = snap.exists() ? snap.data().status : "Unavailable";
+
+    if (status === "Charging") {
+      sawCharging = true;
+      startStatus.innerHTML = `⚡ جاري الشحن الآن...`;
+      startStatus.className = "d-block mt-2 text-success";
+    } else if (status === "Faulted") {
+      startStatus.innerHTML = `⚠️ في عطل بالمحطة. تواصل مع فريق مُر.`;
+      startStatus.className = "d-block mt-2 text-danger";
+    } else if (sawCharging) {
+      startStatus.innerHTML = `✅ انتهت جلسة الشحن بنجاح، يرجى فصل الشاحن الآن.`;
+      startStatus.className = "d-block mt-2 text-success";
+    }
+  });
+}
+
 startBtn.addEventListener("click", async () => {
   startBtn.disabled = true;
   startStatus.textContent = "جاري إرسال طلبك...";
@@ -182,6 +207,7 @@ startBtn.addEventListener("click", async () => {
     });
     startStatus.innerHTML = `تم إرسال طلبك ✅<br><span class="text-muted">الربط الآلي بالشاحن قيد الإعداد حاليًا — موظف مُر بيفعّل الشحن يدويًا خلال دقائق.</span>`;
     startStatus.className = "d-block mt-2 text-success";
+    watchConnector();
   } catch (err) {
     startBtn.disabled = false;
     startStatus.textContent = "تعذر إرسال الطلب: " + err.message;
