@@ -1,9 +1,10 @@
 import { db } from "../../services/firebase.js";
 import {
-  doc, getDoc, addDoc, collection, serverTimestamp, onSnapshot
+  doc, getDoc, addDoc, updateDoc, collection, serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const CONNECTOR_BADGE = { Available: "status-done", Charging: "status-contacted", Faulted: "status-rejected", Unavailable: "status-offline" };
+const OCPP_SERVER_URL = "https://mur-ocpp-server.mur-ev-iq.workers.dev";
 
 const params = new URLSearchParams(location.search);
 const chargerId = params.get("c");
@@ -27,6 +28,7 @@ let connector = null;
 let pricePerKwh = 0;
 let customer = null;
 let customerId = null;
+let identifiedTag = null; // RFID tag or login code the customer identified with - doubles as the OCPP idTag for remote-start
 let sawCharging = false;
 
 function currencyIQD(n) {
@@ -135,6 +137,7 @@ identifyForm.addEventListener("submit", async (e) => {
       identifyStatus.className = "d-block mt-2 text-danger";
       return;
     }
+    identifiedTag = tag;
     await showCustomer(resolvedId, customerSnap.data());
   } catch (err) {
     identifyStatus.textContent = "تعذر التحقق: " + err.message;
@@ -163,6 +166,7 @@ codeIdentifyForm.addEventListener("submit", async (e) => {
       identifyStatus.className = "d-block mt-2 text-danger";
       return;
     }
+    identifiedTag = code;
     await showCustomer(resolvedId, customerSnap.data());
   } catch (err) {
     identifyStatus.textContent = "تعذر التحقق: " + err.message;
@@ -199,19 +203,44 @@ startBtn.addEventListener("click", async () => {
   startStatus.textContent = "جاري إرسال طلبك...";
   startStatus.className = "d-block mt-2";
 
+  let requestRef;
   try {
-    await addDoc(collection(db, "evChargeRequests"), {
+    requestRef = await addDoc(collection(db, "evChargeRequests"), {
       customerId, customerName: customer.name, customerPhone: customer.phone || "",
       chargerId, chargerName: charger.name || charger.ocppId, connectorId,
       status: "pending", requestedAt: serverTimestamp()
     });
-    startStatus.innerHTML = `تم إرسال طلبك ✅<br><span class="text-muted">الربط الآلي بالشاحن قيد الإعداد حاليًا — موظف مُر بيفعّل الشحن يدويًا خلال دقائق.</span>`;
-    startStatus.className = "d-block mt-2 text-success";
-    watchConnector();
   } catch (err) {
     startBtn.disabled = false;
     startStatus.textContent = "تعذر إرسال الطلب: " + err.message;
     startStatus.className = "d-block mt-2 text-danger";
+    return;
+  }
+
+  // Try to command the charger directly over OCPP (RemoteStartTransaction).
+  // If it's offline or rejects, fall back to the existing staff-notification
+  // flow instead of leaving the customer with nothing.
+  try {
+    const res = await fetch(`${OCPP_SERVER_URL}/remote-start/${encodeURIComponent(charger.ocppId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ connectorId, idTag: identifiedTag })
+    });
+
+    if (res.ok) {
+      await updateDoc(requestRef, { status: "acknowledged", acknowledgedBy: "system" });
+      startStatus.innerHTML = `تم إرسال أمر التشغيل للمحطة ⚡`;
+      startStatus.className = "d-block mt-2 text-success";
+      watchConnector();
+    } else {
+      startStatus.innerHTML = `المحطة غير متصلة حاليًا ⚠️<br><span class="text-muted">وصل طلبك لفريق مُر وراح يفعّل الشحن يدويًا خلال دقائق.</span>`;
+      startStatus.className = "d-block mt-2 text-warning";
+      watchConnector();
+    }
+  } catch {
+    startStatus.innerHTML = `تعذر التواصل مع سيرفر الشحن ⚠️<br><span class="text-muted">وصل طلبك لفريق مُر وراح يفعّل الشحن يدويًا خلال دقائق.</span>`;
+    startStatus.className = "d-block mt-2 text-warning";
+    watchConnector();
   }
 });
 

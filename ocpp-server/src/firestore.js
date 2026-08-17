@@ -93,6 +93,42 @@ export async function patchDoc(env, path, fields) {
   return res.json();
 }
 
+export async function createDoc(env, collectionPath, fields) {
+  const token = await getAccessToken(env);
+  const body = { fields: {} };
+  for (const [k, v] of Object.entries(fields)) body.fields[k] = toFirestoreValue(v);
+
+  const res = await fetch(`${baseUrl(env)}/${collectionPath}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`Firestore create ${collectionPath} failed: ${res.status} ${await res.text()}`);
+  const doc = await res.json();
+  return { id: doc.name.split("/").pop(), ...fromFirestoreFields(doc.fields) };
+}
+
+// Atomic field-transform increments (same guarantee as the client SDK's
+// increment() used in assets/js/ev-sessions.js) - avoids read-modify-write
+// races on money fields. Supports dotted paths (e.g. "weeklyStats.2026-W34.kwh")
+// which Firestore creates as nested maps automatically, same as the client SDK.
+export async function commitIncrement(env, docPath, incrementFields) {
+  const token = await getAccessToken(env);
+  const resourceName = `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${docPath}`;
+  const fieldTransforms = Object.entries(incrementFields).map(([fieldPath, amount]) => ({
+    fieldPath,
+    increment: { doubleValue: amount }
+  }));
+
+  const res = await fetch(`${baseUrl(env)}:commit`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ writes: [{ transform: { document: resourceName, fieldTransforms } }] })
+  });
+  if (!res.ok) throw new Error(`Firestore commitIncrement ${docPath} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
 export async function queryChargerByOcppId(env, ocppId) {
   const token = await getAccessToken(env);
   const res = await fetch(`${baseUrl(env)}:runQuery`, {

@@ -5,9 +5,42 @@ export { ChargerSession };
 // A physical charger connects to wss://<worker-url>/ocpp/<ocppId>, where
 // <ocppId> matches the `ocppId` field already stored on the evChargers doc
 // (e.g. "SWG5-001"). Each ocppId gets its own Durable Object instance.
+
+// /remote-start/<ocppId> is called from charge.js when a customer clicks
+// "ابدأ الشحن" - a plain browser fetch() from the site's own origin, so
+// (unlike the WebSocket route) it needs CORS headers.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type"
+};
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    const remoteStartMatch = url.pathname.match(/^\/remote-start\/([^/]+)$/);
+    if (remoteStartMatch) {
+      if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+
+      const ocppId = decodeURIComponent(remoteStartMatch[1]);
+      const id = env.CHARGER_SESSION.idFromName(ocppId);
+      const stub = env.CHARGER_SESSION.get(id);
+
+      const internalUrl = new URL(request.url);
+      internalUrl.pathname = "/internal/remote-start";
+      const doResponse = await stub.fetch(internalUrl.toString(), {
+        method: "POST",
+        body: await request.text(),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      return new Response(await doResponse.text(), {
+        status: doResponse.status,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
+      });
+    }
+
     const match = url.pathname.match(/^\/ocpp\/([^/]+)$/);
 
     if (!match) {
