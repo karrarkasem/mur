@@ -108,6 +108,18 @@ export async function createDoc(env, collectionPath, fields) {
   return { id: doc.name.split("/").pop(), ...fromFirestoreFields(doc.fields) };
 }
 
+// Firestore's raw REST field-path syntax requires any path segment that
+// isn't a plain identifier ([a-zA-Z_][a-zA-Z_0-9]*) to be backtick-quoted -
+// e.g. an ISO week key like "2026-W34" has a hyphen, so it must become
+// `weeklyStats.`2026-W34`.kwh`. The client SDK's dotted-path update() does
+// this automatically; the REST API does not.
+function quoteFieldPath(dottedPath) {
+  return dottedPath
+    .split(".")
+    .map((segment) => (/^[a-zA-Z_][a-zA-Z_0-9]*$/.test(segment) ? segment : "`" + segment.replace(/`/g, "\\`") + "`"))
+    .join(".");
+}
+
 // Atomic field-transform increments (same guarantee as the client SDK's
 // increment() used in assets/js/ev-sessions.js) - avoids read-modify-write
 // races on money fields. Supports dotted paths (e.g. "weeklyStats.2026-W34.kwh")
@@ -116,7 +128,7 @@ export async function commitIncrement(env, docPath, incrementFields) {
   const token = await getAccessToken(env);
   const resourceName = `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${docPath}`;
   const fieldTransforms = Object.entries(incrementFields).map(([fieldPath, amount]) => ({
-    fieldPath,
+    fieldPath: quoteFieldPath(fieldPath),
     increment: { doubleValue: amount }
   }));
 
