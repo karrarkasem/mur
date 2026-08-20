@@ -262,6 +262,12 @@ h1,h2,h3,h4,h5,h6{font-weight:800}
 .btn-icon:hover{background:rgba(10,46,38,.06);color:var(--brand)}
 .btn-icon.danger:hover{color:#c0392b;background:rgba(192,57,43,.08)}
 
+/* ---------- station map (restaurant-table style status grid) ---------- */
+.station-card{background:#fff;border-radius:var(--radius);box-shadow:0 8px 25px rgba(10,46,38,.06);padding:1.4rem 1rem;text-align:center;transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.station-card:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(10,46,38,.1)}
+.station-card .status-badge{font-size:.85rem;padding:.4rem 1rem;margin-bottom:.7rem}
+.station-card h6{margin-bottom:.2rem;font-weight:800}
+
 @media(max-width:900px){
   .sidebar{position:static;width:100%;height:auto}
   .dashboard-main{margin-right:0}

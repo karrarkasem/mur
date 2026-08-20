@@ -1,4 +1,5 @@
 import { getDoc, patchDoc, createDoc, commitIncrement, queryChargerByOcppId } from "./firestore.js";
+import { notifyTelegram } from "./telegram.js";
 
 // One Durable Object instance per physical charger (keyed by its OCPP
 // identity, see index.js). Uses the WebSocket Hibernation API so the
@@ -210,6 +211,11 @@ export class ChargerSession {
       customerId: resolved.customerId,
       stopRequested: false
     });
+
+    // Awaited (not fire-and-forget) - a Durable Object can end its execution
+    // context once the current method's promise settles, which would cancel
+    // an in-flight unawaited fetch() to Telegram's API.
+    await notifyTelegram(this.env, `⚡ <b>بدأت جلسة شحن</b>\nالزبون: ${resolved.customer.name || "—"}\nالمحطة: ${chargerDoc?.name || chargerDoc?.ocppId || docId} #${connectorId}`);
 
     return { transactionId, idTagInfo: { status: "Accepted" } };
   }

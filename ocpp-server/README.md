@@ -2,7 +2,7 @@
 
 سيرفر يستقبل اتصال محطات الشحن الحقيقية عبر **OCPP 1.6J** (WebSocket)، ويحدّث نفس مستندات Firestore اللي تعرضها صفحات إدارة الشحن بالموقع (`ev-dashboard.html`, `ev-chargers.html`) — بدون أي تعديل على الواجهة.
 
-هذي الجولة تدعم بس: `BootNotification`, `Heartbeat`, `StatusNotification` (يعني: المحطة تتصل، وتصير تظهر Online وحالة الموصلات تتحدث لحظيًا بالوحة التحكم). جلسات الشحن الحقيقية (`Authorize`/`StartTransaction`/`MeterValues`/`StopTransaction`) مرحلة تالية.
+يدعم: `BootNotification`, `Heartbeat`, `StatusNotification` (المحطة تتصل وتظهر Online وحالة الموصلات تتحدث لحظيًا)، وجلسات شحن حقيقية كاملة (`Authorize`/`StartTransaction`/`MeterValues`/`StopTransaction`) مع خصم تلقائي من محفظة الزبون وإيقاف تلقائي (`RemoteStopTransaction`) لو نفد الرصيد أثناء الشحن. كذلك `/remote-start/{ocppId}` يستقبل أمر تشغيل من زر "ابدأ الشحن" بـ`charge.html` ويرسله للمحطة المتصلة مباشرة، و`/notify-session-start` يرسل إشعار تلجرام عند بدء أي جلسة (آلية أو يدوية).
 
 ## الإعداد (مرة وحدة)
 
@@ -37,7 +37,26 @@ npx wrangler secret put FIREBASE_PRIVATE_KEY
 # الصق قيمة private_key كاملة (تبدأ بـ -----BEGIN PRIVATE KEY-----)
 ```
 
-### 5. أول نشر يدوي (اختياري، للتجربة قبل أول push)
+### 5. إشعارات تلجرام (اختياري)
+لو تريد إشعار تلجرام عند بداية كل جلسة شحن:
+
+1. افتح تلجرام ودور على `@BotFather`، أرسلّه `/newbot`، واتبع الخطوات (اسم + username ينتهي بـ`bot`) — راح يعطيك **Bot Token** (شكله `123456789:ABCdef...`).
+2. لمعرفة **Chat ID** الوجهة:
+   - لو تريد الإشعار يوصلك إنت شخصيًا: ارسل أي رسالة للبوت الجديد أولاً، بعدين افتح بالمتصفح:
+     `https://api.telegram.org/bot<التوكن>/getUpdates`
+     ودور على `"chat":{"id": ...}` بالرد.
+   - لو تريده يوصل لقروب: ضيف البوت للقروب، ارسل أي رسالة بالقروب، وسوي نفس الخطوة أعلاه (الـid راح يكون رقم سالب للقروبات).
+3. سجّل القيمتين كأسرار على الـWorker:
+
+```bash
+cd ocpp-server
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+npx wrangler secret put TELEGRAM_CHAT_ID
+```
+
+بدون هذي الأسرار، النظام يشتغل عادي بس بدون إشعارات (`notifyTelegram` يتجاهل الإرسال بصمت لو ماكو أسرار).
+
+### 6. أول نشر يدوي (اختياري، للتجربة قبل أول push)
 ```bash
 npx wrangler deploy
 ```

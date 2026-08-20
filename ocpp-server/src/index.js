@@ -1,4 +1,6 @@
 import { ChargerSession } from "./ChargerSession.js";
+import { getDoc } from "./firestore.js";
+import { notifyTelegram } from "./telegram.js";
 
 export { ChargerSession };
 
@@ -39,6 +41,28 @@ export default {
         status: doResponse.status,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" }
       });
+    }
+
+    // Called from ev-sessions.js right after a staff member logs a manual
+    // session (e.g. via the ev-station-map.html "ابدأ جلسة" flow). Re-reads
+    // the customer from Firestore rather than trusting whatever name string
+    // the client sends, so this can't be used to post arbitrary text.
+    if (url.pathname === "/notify-session-start") {
+      if (request.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
+
+      const body = await request.json().catch(() => ({}));
+      const customer = body.customerId ? await getDoc(env, `evCustomers/${body.customerId}`) : null;
+      if (!customer) return new Response(JSON.stringify({ error: "عميل غير معروف" }), { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
+
+      await notifyTelegram(env,
+        `⚡ <b>بدأت جلسة شحن (تسجيل يدوي)</b>\n` +
+        `الزبون: ${customer.name || "—"}\n` +
+        `المحطة: ${body.chargerName || "—"} #${body.connectorId || "1"}\n` +
+        `الطاقة: ${Number(body.energyKwh || 0).toFixed(1)} kWh — التكلفة: ${Number(body.finalCost || 0).toLocaleString("ar-IQ")} د.ع\n` +
+        `الموظف: ${body.loggedBy || "—"}`
+      );
+
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
     }
 
     const match = url.pathname.match(/^\/ocpp\/([^/]+)$/);

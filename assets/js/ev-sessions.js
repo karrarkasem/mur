@@ -6,6 +6,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const PAYMENT_LABELS = { wallet: "المحفظة", cash: "نقدًا", pending: "بدون تحصيل" };
+const OCPP_SERVER_URL = "https://mur-ocpp-server.mur-ev-iq.workers.dev";
+
+// Deep-linked from ev-station-map.html ("ابدأ جلسة" on an available station) -
+// pre-fills and opens the manual-session modal for that exact charger/connector.
+const params = new URLSearchParams(location.search);
+const preselect = params.get("chargerId") ? { chargerId: params.get("chargerId"), connectorId: params.get("connectorId") || "1" } : null;
+let preselectApplied = false;
 
 const deniedBox = document.getElementById("deniedBox");
 const content = document.getElementById("content");
@@ -142,15 +149,19 @@ paymentSelect.addEventListener("change", () => {
   walletWarning.classList.toggle("d-none", !customer || balance >= cost);
 });
 
-document.getElementById("addBtn").addEventListener("click", () => {
+function openAddModal(prefill) {
   form.reset();
   populateSelects();
+  if (prefill?.chargerId) chargerSelect.value = prefill.chargerId;
   populateConnectors();
+  if (prefill?.connectorId) connectorSelect.value = prefill.connectorId;
   priceInput.value = 300;
   costInput.value = 0;
   walletWarning.classList.add("d-none");
   modal.show();
-});
+}
+
+document.getElementById("addBtn").addEventListener("click", () => openAddModal());
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -219,6 +230,18 @@ form.addEventListener("submit", async (e) => {
       await batch.commit();
     }
     modal.hide();
+
+    // Best-effort Telegram alert - never let a notification failure look
+    // like the session itself failed to save (it already did, above).
+    fetch(`${OCPP_SERVER_URL}/notify-session-start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerId: customer.id, chargerName: charger.name || charger.ocppId,
+        connectorId: connectorSelect.value, energyKwh: energyConsumedKwh, finalCost,
+        loggedBy: currentUser?.email || null
+      })
+    }).catch(() => {});
   } catch (err) {
     alert("تعذر تسجيل الجلسة: " + err.message);
   }
@@ -237,12 +260,21 @@ requireAuth((user, role) => {
     render();
   }, (err) => { tbody.innerHTML = `<tr><td colspan="7" class="empty-state">تعذر التحميل: ${err.message}</td></tr>`; });
 
+  function maybeApplyPreselect() {
+    if (preselect && !preselectApplied && allCustomers.length && allChargers.length) {
+      preselectApplied = true;
+      openAddModal(preselect);
+    }
+  }
+
   onSnapshot(collection(db, "evCustomers"), (snap) => {
     allCustomers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    maybeApplyPreselect();
   });
 
   onSnapshot(collection(db, "evChargers"), (snap) => {
     allChargers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    maybeApplyPreselect();
   });
 
   onSnapshot(collectionGroup(db, "connectors"), (snap) => {
