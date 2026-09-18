@@ -1,6 +1,7 @@
 name = "mur-ocpp-server"
 main = "src/index.js"
 compatibility_date = "2026-08-01"
+workers_dev = true
 
 # Non-secret config. FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY are set
 # separately as secrets (never committed) - see README.md.
