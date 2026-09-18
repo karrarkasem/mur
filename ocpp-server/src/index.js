@@ -65,22 +65,30 @@ export default {
       return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } });
     }
 
-    const match = url.pathname.match(/^\/ocpp\/([^/]+)$/);
+    // Real hardware (confirmed with Suntree support) connects as
+    // wss://<worker-url>/<ocppId> directly - the OCPP-J spec's actual
+    // canonical form, with no "/ocpp/" segment. We only ever tested against
+    // our own simulator using /ocpp/<ocppId>, so keep accepting that form
+    // too (docs, simulate-charger.mjs) alongside the bare form real chargers
+    // use. The bare form is only treated as an ocppId route on an actual
+    // WebSocket upgrade request, so a plain browser visit to some other path
+    // still gets the friendly default response below.
+    const isWsUpgrade = request.headers.get("Upgrade") === "websocket";
+    const prefixedMatch = url.pathname.match(/^\/ocpp\/([^/]+)$/);
+    const bareMatch = isWsUpgrade ? url.pathname.match(/^\/([^/]+)$/) : null;
+    const match = prefixedMatch || bareMatch;
 
     if (!match) {
       return new Response("MUR OCPP server is running.", { status: 200 });
     }
 
-    if (request.headers.get("Upgrade") !== "websocket") {
+    if (!isWsUpgrade) {
       return new Response("Expected a WebSocket upgrade request", { status: 426 });
     }
 
-    const offeredProtocols = (request.headers.get("Sec-WebSocket-Protocol") || "")
-      .split(",").map((p) => p.trim());
-    if (!offeredProtocols.includes("ocpp1.6")) {
-      return new Response("Expected Sec-WebSocket-Protocol: ocpp1.6", { status: 400 });
-    }
-
+    // Some charger firmware skips subprotocol negotiation entirely - don't
+    // hard-reject on that, just don't echo back a subprotocol the client
+    // never offered (ChargerSession.fetch() handles that part).
     const ocppId = decodeURIComponent(match[1]);
     const id = env.CHARGER_SESSION.idFromName(ocppId);
     const stub = env.CHARGER_SESSION.get(id);

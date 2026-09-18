@@ -60,10 +60,19 @@ export class ChargerSession {
     const [client, server] = Object.values(pair);
     this.state.acceptWebSocket(server, [ocppId]);
 
+    // Only echo back a subprotocol if the client actually offered it (RFC
+    // 6455) - some firmware skips this negotiation, and responding with one
+    // it never offered can make a strict client abort the handshake.
+    const offeredProtocols = (request.headers.get("Sec-WebSocket-Protocol") || "")
+      .split(",").map((p) => p.trim()).filter(Boolean);
+    const responseHeaders = offeredProtocols.includes("ocpp1.6")
+      ? { "Sec-WebSocket-Protocol": "ocpp1.6" }
+      : {};
+
     return new Response(null, {
       status: 101,
       webSocket: client,
-      headers: { "Sec-WebSocket-Protocol": "ocpp1.6" }
+      headers: responseHeaders
     });
   }
 
